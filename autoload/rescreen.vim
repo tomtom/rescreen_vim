@@ -1,24 +1,21 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    724
+" @Revision:    786
 
 
 if !exists('g:rescreen#mapleader')
+    " Map leader used in |g:rescreen#maps|.
     let g:rescreen#mapleader = '<localleader>e'   "{{{2
 endif
 
 
 if !exists('g:rescreen#maps')
-    " let g:rescreen#maps = {...}   "{{{2
+    " Key maps.
+    " :read: let g:rescreen#maps = {...}   "{{{2
     let g:rescreen#maps = {
                 \ 'send': '<c-cr>',
                 \ 'op': g:rescreen#mapleader,
                 \ }
-endif
-
-
-if !exists('g:rescreen#cmds')
-    let g:rescreen#cmds = {}  "{{{2
 endif
 
 
@@ -38,9 +35,11 @@ if !exists('g:rescreen#cmd')
 endif
 
 
-if !exists('g:rescreen#filetype_map')
-    " :read: let g:rescreen#filetype_map = {...}   "{{{2
-    let g:rescreen#filetype_map = {
+if !exists('g:rescreen#repltype_map')
+    " A map REPLTYPE => REPL. The key "*" defines the default/fallback REPL.
+    " REPLTYPE defaults to 'filetype'.
+    " :read: let g:rescreen#repltype_map = {...}   "{{{2
+    let g:rescreen#repltype_map = {
                 \ '*': 'bash',
                 \ 'clojure': 'clojure',
                 \ 'python': 'python',
@@ -54,6 +53,7 @@ endif
 
 
 if !exists('g:rescreen#session_name_expr')
+    " A vim expression that is |eval()|uated to get the session name.
     let g:rescreen#session_name_expr = '"rescreen_'. v:servername .'_". self.repl'   "{{{2
 endif
 
@@ -191,39 +191,46 @@ let s:prototype = {
             \ 'convert_path': has('win32unix') ? 'cygpath -m %s' : '',
             \ 'initial_screen_args': '',
             \ 'quitter': '',
-            \ 'repl': '',
+            \ 'repltype': '',
             \ 'WrapResultPrinter': '',
             \ 'WrapResultWriter': '',
             \ }
 
 
 function! s:prototype.InitBuffer() dict "{{{3
-    let filetype = get(self, 'filetype', &l:filetype)
-    let self.repl = get(g:rescreen#filetype_map, filetype, g:rescreen#filetype_map['*'])
-    let session_name = eval(g:rescreen#session_name_expr)
-    let self.session_name = substitute(session_name, '\W', '_', 'g')
-    command! -bar -buffer Requit call rescreen#Quit()
-    command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
-    let map_send = get(g:rescreen#maps, 'send', '')
-    if !empty(map_send)
-        exec 'nnoremap <buffer>' map_send ':call rescreen#Send(getline("."))<cr>'
-        exec 'inoremap <buffer>' map_send '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
-        exec 'xnoremap <buffer>' map_send ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
+    if !exists('b:rescreens')
+        let b:rescreens = {}
     endif
-    let map_op = get(g:rescreen#maps, 'op', '')
-    if !empty(map_op)
-        exec 'nnoremap <buffer> '. map_op .' :set opfunc=rescreen#Operator<cr>g@'
-        exec 'xnoremap <buffer> '. map_op .' :call rescreen#Send(<SID>GetSelection("v"))<cr>'
+    if empty(self.repltype)
+        let self.repltype = empty(&l:filetype) ? '*' : &l:filetype
+    endif
+    if has_key(b:rescreens, self.repltype)
+        return b:rescreens[self.repltype]
+    else
+        let self.repl = get(g:rescreen#repltype_map, self.repltype, g:rescreen#repltype_map['*'])
+        let session_name = eval(g:rescreen#session_name_expr)
+        let self.session_name = substitute(session_name, '\W', '_', 'g')
+        command! -bar -buffer -bang Requit if empty('<bang>') | call rescreen#Exit() | else | call rescreen#ExitAll() | endif
+        command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
+        let map_send = get(g:rescreen#maps, 'send', '')
+        if !empty(map_send)
+            exec 'nnoremap <buffer>' map_send ':call rescreen#Send(getline("."))<cr>'
+            exec 'inoremap <buffer>' map_send '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
+            exec 'xnoremap <buffer>' map_send ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
+        endif
+        let map_op = get(g:rescreen#maps, 'op', '')
+        if !empty(map_op)
+            exec 'nnoremap <buffer> '. map_op .' :set opfunc=rescreen#Operator<cr>g@'
+            exec 'xnoremap <buffer> '. map_op .' :call rescreen#Send(<SID>GetSelection("v"))<cr>'
+        endif
+        " TLogVAR self.repltype
+        let b:rescreens[self.repltype] = self
+        return self
     endif
 endf
 
 
-function! s:prototype.Connect(...) dict "{{{3
-    return call(self.EnsureSessionExists, a:000, self)
-endf
-
-
-function! s:prototype.Disconnect() dict "{{{3
+function! s:prototype.ExitRepl() dict "{{{3
     let rv = 0
     if self.SessionExists(0, '.')
         if !empty(self.quitter)
@@ -238,6 +245,7 @@ function! s:prototype.Disconnect() dict "{{{3
         if !empty(s:tempfile) && filereadable(s:tempfile)
             call delete(s:tempfile)
         endif
+        call remove(b:rescreens, self.repltype)
     endif
     return rv
 endf
@@ -507,28 +515,57 @@ function! s:prototype.PrepareInput(input, mode) dict "{{{3
 endf
 
 
+" Turn positional arguments into a dictionary. The arguments are:
+"   0. repltype
+function! rescreen#Args2Dict(args) "{{{3
+    let argd = {}
+    if !empty(a:args)
+        let argn = ['repltype']
+        for i in range(0, len(argn) - 1)
+            let name = argn[i]
+            let val = a:args[i]
+            let argd[name] = val
+        endfor
+    endif
+    return argd
+endf
+
+
 function! rescreen#Init(...) "{{{3
-    if !exists('b:rescreen')
-        let b:rescreen = copy(s:prototype)
-        if a:0 >= 1
-            let b:rescreen = extend(b:rescreen, a:1)
-        endif
-        call b:rescreen.InitBuffer()
+    let argd = a:0 >= 1 ? a:1 : {}
+    " TLogVAR argd
+    if !exists('b:rescreen') || (has_key(argd, 'repltype') && argd.repltype != b:rescreen.repltype)
+        let rescreen = copy(s:prototype)
+        let rescreen = extend(rescreen, argd)
+        let b:rescreen = rescreen.InitBuffer()
     endif
     return b:rescreen
 endf
 
 
-function! rescreen#Send(lines, ...) "{{{3
-    call call(function('rescreen#Init'), a:000)
-    call b:rescreen.EvaluateInSession(a:lines, '')
-endf
-
-
-function! rescreen#Quit() "{{{3
+function! rescreen#Exit() "{{{3
     if !exists('b:rescreen')
         return
     endif
-    call b:rescreen.Disconnect()
+    call b:rescreen.ExitRepl()
+    unlet! b:rescreen
+endf
+
+
+function! rescreen#ExitAll() "{{{3
+    if exists('b:rescreens')
+        for [repltype, rescreen] in items(b:rescreens)
+            call rescreen.ExitRepl()
+        endfor
+        unlet! b:rescreen b:rescreens
+    endif
+endf
+
+
+" :display: rescreen#Send(lines, ?repltype = '*')
+" Send lines to a REPL.
+function! rescreen#Send(lines, ...) "{{{3
+    let rescreen = call(function('rescreen#Init'), [rescreen#Args2Dict(a:000)])
+    call rescreen.EvaluateInSession(a:lines, '')
 endf
 
