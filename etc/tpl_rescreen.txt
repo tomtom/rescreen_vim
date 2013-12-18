@@ -1,0 +1,20 @@
+*rescreen.txt*  Yet another plugin that uses screen to evaluate code
+                Author: Thomas Link, micathom AT gmail com?subject=vim
+
+This plugin is supposed to be used from GVIM. It sends code to a repl running 
+inside a screen session.
+
+
+-----------------------------------------------------------------------
+Install~
+
+Edit the vba file and type: >
+
+    :so %%
+
+See :help vimball for details. If you have difficulties or use vim 7.0, 
+please make sure, you have the current version of vimball (vimscript 
+#1502) installed or update your runtime.
+
+
+%s
