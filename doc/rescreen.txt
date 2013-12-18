@@ -1,0 +1,194 @@
+*rescreen.txt*  Yet another plugin that uses screen to evaluate code
+                Author: Thomas Link, micathom AT gmail com?subject=vim
+
+This plugin is supposed to be used from GVIM. It sends code to a repl running 
+inside a screen session.
+
+
+-----------------------------------------------------------------------
+Install~
+
+Edit the vba file and type: >
+
+    :so %
+
+See :help vimball for details. If you have difficulties or use vim 7.0, 
+please make sure, you have the current version of vimball (vimscript 
+#1502) installed or update your runtime.
+
+
+========================================================================
+Contents~
+
+        :Rescreen ....................... |:Rescreen|
+        g:rescreen#mapleader ............ |g:rescreen#mapleader|
+        g:rescreen#maps ................. |g:rescreen#maps|
+        g:rescreen#encoding ............. |g:rescreen#encoding|
+        g:rescreen#cmd .................. |g:rescreen#cmd|
+        g:rescreen#repltype_map ......... |g:rescreen#repltype_map|
+        g:rescreen#session_name_expr .... |g:rescreen#session_name_expr|
+        g:rescreen#shell ................ |g:rescreen#shell|
+        g:rescreen#init_wait ............ |g:rescreen#init_wait|
+        g:rescreen#wait ................. |g:rescreen#wait|
+        g:rescreen#clear ................ |g:rescreen#clear|
+        g:rescreen#sep .................. |g:rescreen#sep|
+        g:rescreen#send_after ........... |g:rescreen#send_after|
+        g:rescreen#timeout .............. |g:rescreen#timeout|
+        g:rescreen#maxsize .............. |g:rescreen#maxsize|
+        rescreen#Operator ............... |rescreen#Operator()|
+        prototype.InitBuffer
+        :Requit ......................... |:Requit|
+        :Resend ......................... |:Resend|
+        prototype.ExitRepl
+        prototype.EvaluateInSession
+        prototype.Filename
+        prototype.GetScreenCmd
+        prototype.GetSessionParams
+        prototype.SessionExists
+        prototype.GetSessions
+        prototype.EnsureSessionExists
+        prototype.StartSession
+        prototype.RunScreen
+        prototype.PrepareInput
+        rescreen#Args2Dict .............. |rescreen#Args2Dict()|
+        rescreen#Init ................... |rescreen#Init()|
+        rescreen#Exit ................... |rescreen#Exit()|
+        rescreen#ExitAll ................ |rescreen#ExitAll()|
+        rescreen#Send ................... |rescreen#Send()|
+
+
+========================================================================
+plugin/rescreen.vim~
+
+                                                    *:Rescreen*
+:Rescreen [REPLTYPE]
+    Prepare a session using REPLTYPE for the current buffer. If no 
+    REPLTYPE is given, use the default repl (see |g:rescreen#repltype_map|).
+    This command can also be used to switch between REPLs.
+
+
+========================================================================
+autoload/rescreen.vim~
+
+                                                    *g:rescreen#mapleader*
+g:rescreen#mapleader           (default: '<localleader>e')
+    Map leader used in |g:rescreen#maps|.
+
+                                                    *g:rescreen#maps*
+g:rescreen#maps                (default: {...})
+    Key maps.
+
+                                                    *g:rescreen#encoding*
+g:rescreen#encoding            (default: '')
+    If non-empty, use |iconv()| to recode input.
+
+                                                    *g:rescreen#cmd*
+g:rescreen#cmd                 (default: executable('screen') ? 'screen' : '')
+    The name of the screen executable.
+    If the variable is user-defined, trust its value.
+
+                                                    *g:rescreen#repltype_map*
+g:rescreen#repltype_map        (default: {...})
+    A map REPLTYPE => REPL. The key "*" defines the default/fallback REPL.
+    REPLTYPE defaults to 'filetype'.
+
+                                                    *g:rescreen#session_name_expr*
+g:rescreen#session_name_expr   (default: '"rescreen_'. v:servername .'_". self.repl')
+    A vim expression that is |eval()|uated to get the session name.
+
+                                                    *g:rescreen#shell*
+g:rescreen#shell               (default: '')
+    The shell and terminal used to run |g:rescreen#cmd|.
+    If GUI is running, also start a terminal.
+
+    Default values with GUI running:
+        Windows :: mintty
+        Linux :: gnome-terminal
+
+                                                    *g:rescreen#init_wait*
+g:rescreen#init_wait           (default: 1)
+    How long to wait after starting the terminal.
+
+                                                    *g:rescreen#wait*
+g:rescreen#wait                (default: '500m')
+    How long to wait after executing a command.
+
+                                                    *g:rescreen#clear*
+g:rescreen#clear               (default: 0)
+    If true, always clear the screen before evaluating some input.
+
+                                                    *g:rescreen#sep*
+g:rescreen#sep                 (default: 0)
+    Number of empty lines to separate commands.
+
+                                                    *g:rescreen#send_after*
+g:rescreen#send_after          (default: '\15\15')
+    A key sequence sent to the terminal via screen's stuff command 
+    after evaluating input.
+
+                                                    *g:rescreen#timeout*
+g:rescreen#timeout             (default: 5)
+    Timeout when waiting for a command to finish to retrieve 
+    its output.
+
+                                                    *g:rescreen#maxsize*
+g:rescreen#maxsize             (default: 2048)
+
+                                                    *rescreen#Operator()*
+rescreen#Operator(type, ...)
+    For use as an operator. See 'opfunc'.
+
+s:GetSelection(mode, ?mbeg="'<", ?mend="'>", ?opmode='selection')
+
+                                                    *:Requit*
+:Requit
+
+                                                    *:Resend*
+:Resend
+
+prototype.ExitRepl
+
+prototype.EvaluateInSession
+    input  ... a list of lines for input
+    mode  ... r ... read the result
+              x ... evaluate as is
+
+prototype.Filename
+
+prototype.GetScreenCmd
+
+prototype.GetSessionParams
+
+prototype.SessionExists
+
+prototype.GetSessions
+
+prototype.EnsureSessionExists
+
+prototype.StartSession
+
+prototype.RunScreen
+
+prototype.PrepareInput
+
+                                                    *rescreen#Args2Dict()*
+rescreen#Args2Dict(args)
+    Turn positional arguments into a dictionary. The arguments are:
+      0. repltype
+
+                                                    *rescreen#Init()*
+rescreen#Init(...)
+
+                                                    *rescreen#Exit()*
+rescreen#Exit()
+
+                                                    *rescreen#ExitAll()*
+rescreen#ExitAll()
+
+                                                    *rescreen#Send()*
+rescreen#Send(lines, ?repltype = '*')
+    Send lines to a REPL.
+
+
+
+vim:tw=78:fo=tcq2:isk=!-~,^*,^|,^":ts=8:ft=help:norl:
