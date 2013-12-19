@@ -48,21 +48,8 @@ Contents~
         g:rescreen#maxsize ................... |g:rescreen#maxsize|
         g:rescreen#cd ........................ |g:rescreen#cd|
         rescreen#Operator .................... |rescreen#Operator()|
-        prototype.InitBuffer
         :Requit .............................. |:Requit|
         :Resend .............................. |:Resend|
-        prototype.ExitRepl
-        prototype.EvaluateInSession
-        prototype.Filename
-        prototype.GetScreenCmd
-        prototype.GetSessionParams
-        prototype.SessionExists
-        prototype.GetSessions
-        prototype.EnsureSessionExists
-        prototype.StartSession
-        prototype.RunScreen
-        prototype.PrepareInput
-        rescreen#Args2Dict ................... |rescreen#Args2Dict()|
         rescreen#Init ........................ |rescreen#Init()|
         rescreen#Exit ........................ |rescreen#Exit()|
         rescreen#ExitAll ..................... |rescreen#ExitAll()|
@@ -163,56 +150,33 @@ g:rescreen#cd                  (default: 'cd')
 rescreen#Operator(type, ...)
     For use as an operator. See 'opfunc'.
 
-prototype.InitBuffer
-
                                                     *:Requit*
-:Requit
+:Requit[!]
+    Buffer-local
+    Stop the current screen session.
+    With a bang (!), stop all screen sessions for the current 
+    buffer.
 
                                                     *:Resend*
-:Resend
-
-prototype.ExitRepl
-
-prototype.EvaluateInSession
-    input  ... a list of lines for input
-    mode  ... r ... read the result
-              x ... evaluate as is
-
-prototype.Filename
-
-prototype.GetScreenCmd
-
-prototype.GetSessionParams
-
-prototype.SessionExists
-
-prototype.GetSessions
-
-prototype.EnsureSessionExists
-
-prototype.StartSession
-
-prototype.RunScreen
-
-prototype.PrepareInput
-
-                                                    *rescreen#Args2Dict()*
-rescreen#Args2Dict(args)
-    Turn positional arguments into a dictionary. The arguments are:
-      0. repltype
+:Resend TEXT
+    Buffer-local
+    Send TEXT to the current screen session.
 
                                                     *rescreen#Init()*
 rescreen#Init(...)
 
                                                     *rescreen#Exit()*
 rescreen#Exit()
+    Stop the current screen session.
 
                                                     *rescreen#ExitAll()*
 rescreen#ExitAll()
+    Stop all screen session for the current buffer.
 
                                                     *rescreen#Send()*
 rescreen#Send(lines, ?repltype)
-    Send lines to a REPL.
+    Send lines to a REPL. Use repltype if provided. Otherwise use the 
+    current screen session.
 
 
 ========================================================================

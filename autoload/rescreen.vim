@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    863
+" @Revision:    866
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -219,6 +219,7 @@ let s:prototype = {
             \ }
 
 
+" :nodoc:
 function! s:prototype.InitBuffer() dict "{{{3
     if !exists('b:rescreens')
         let b:rescreens = {}
@@ -232,7 +233,15 @@ function! s:prototype.InitBuffer() dict "{{{3
         let self.repl = get(g:rescreen#repltype_map, self.repltype, g:rescreen#repltype_map['*'])
         let session_name = eval(g:rescreen#session_name_expr)
         let self.session_name = substitute(session_name, '\W', '_', 'g')
+        " Buffer-local
+        " Stop the current screen session.
+        " With a bang (!), stop all screen sessions for the current 
+        " buffer.
+        " :display: :Requit[!]
         command! -bar -buffer -bang Requit if empty('<bang>') | call rescreen#Exit() | else | call rescreen#ExitAll() | endif
+        " Buffer-local
+        " Send TEXT to the current screen session.
+        " :display: :Resend TEXT
         command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
         for [mtype, mkey] in items(g:rescreen#maps)
             if mtype == 'send'
@@ -257,6 +266,7 @@ function! s:prototype.InitBuffer() dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.ExitRepl() dict "{{{3
     let rv = 0
     if self.SessionExists(0, '.')
@@ -281,6 +291,7 @@ endf
 " input  ... a list of lines for input
 " mode  ... r ... read the result
 "           x ... evaluate as is
+" :nodoc:
 function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
     " TLogVAR a:input, a:mode
     if a:mode !=? 'x'
@@ -357,6 +368,7 @@ function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.Filename(filename) dict "{{{3
     if empty(self.convert_path)
         return a:filename
@@ -369,6 +381,7 @@ function! s:prototype.Filename(filename) dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
     " TLogVAR a:type, a:screen_args
     let eval = '-X eval'
@@ -428,6 +441,7 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.GetSessionParams() dict "{{{3
     let p = has('gui_running') ? ('-D -R -S '. self.session_name) : ''
     let p .= ' -p '. self.session_name
@@ -435,12 +449,14 @@ function! s:prototype.GetSessionParams() dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.SessionExists(...) dict "{{{3
     let sessions = call(self.GetSessions, a:000, self)
     return !empty(sessions)
 endf
 
 
+" :nodoc:
 function! s:prototype.GetSessions(use_cached, ...) dict "{{{3
     if !exists('s:sessions_list') || !a:use_cached
         let s:sessions_list = split(system(g:rescreen#cmd .' -list'), '\n')
@@ -462,6 +478,7 @@ endf
 
 
 " :read: s:prototype.EnsureSessionExists(?repl = self.repl) dict
+" :nodoc:
 function! s:prototype.EnsureSessionExists(...) dict "{{{3
     let rv = 0
     let ok = self.SessionExists(0, '.')
@@ -492,6 +509,7 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.StartSession(type) dict "{{{3
     let cmd = self.GetScreenCmd(a:type, '')
     " TLogVAR cmd
@@ -509,6 +527,7 @@ function! s:prototype.StartSession(type) dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.RunScreen(screen_args) dict "{{{3
     " TLogVAR a:screen_args
     let cmd = self.GetScreenCmd('', a:screen_args)
@@ -525,6 +544,7 @@ function! s:prototype.RunScreen(screen_args) dict "{{{3
 endf
 
 
+" :nodoc:
 function! s:prototype.PrepareInput(input, mode) dict "{{{3
     if type(a:input) == 3
         let input = a:input
@@ -562,6 +582,7 @@ endf
 
 " Turn positional arguments into a dictionary. The arguments are:
 "   0. repltype
+" :nodoc:
 function! rescreen#Args2Dict(args) "{{{3
     let argd = {}
     if !empty(a:args)
@@ -576,6 +597,7 @@ function! rescreen#Args2Dict(args) "{{{3
 endf
 
 
+" Initialize a screen session.
 " :read: rescreen#Init(?run_now = 0, ?ext = {}) "{{{3
 function! rescreen#Init(...) "{{{3
     let run_now = a:0 >= 1 ? a:1 : 0
@@ -593,6 +615,7 @@ function! rescreen#Init(...) "{{{3
 endf
 
 
+" Stop the current screen session.
 function! rescreen#Exit() "{{{3
     if !exists('b:rescreen')
         return
@@ -602,6 +625,7 @@ function! rescreen#Exit() "{{{3
 endf
 
 
+" Stop all screen session for the current buffer.
 function! rescreen#ExitAll() "{{{3
     if exists('b:rescreens')
         for [repltype, rescreen] in items(b:rescreens)
@@ -613,7 +637,8 @@ endf
 
 
 " :display: rescreen#Send(lines, ?repltype)
-" Send lines to a REPL.
+" Send lines to a REPL. Use repltype if provided. Otherwise use the 
+" current screen session.
 function! rescreen#Send(lines, ...) "{{{3
     let rescreen = call(function('rescreen#Init'), [0, rescreen#Args2Dict(a:000)])
     call rescreen.EvaluateInSession(a:lines, '')
