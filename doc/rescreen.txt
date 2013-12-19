@@ -50,6 +50,7 @@ Contents~
         rescreen#Operator .................... |rescreen#Operator()|
         :Requit .............................. |:Requit|
         :Resend .............................. |:Resend|
+        prototype.IsSupportedMode
         rescreen#Init ........................ |rescreen#Init()|
         rescreen#Exit ........................ |rescreen#Exit()|
         rescreen#ExitAll ..................... |rescreen#ExitAll()|
@@ -165,6 +166,8 @@ rescreen#Operator(type, ...)
     Buffer-local
     Send TEXT to the current screen session.
 
+prototype.IsSupportedMode
+
                                                     *rescreen#Init()*
 rescreen#Init(...)
 
@@ -187,6 +190,12 @@ autoload/rescreen/repl/clojure.vim~
 
                                                     *rescreen#repl#clojure#Extend()*
 rescreen#repl#clojure#Extend(dict)
+    Set the repl to "lein repl" if the current buffer seems to be part of 
+    a lein project, i.e. if there is a project.clj around. Otherwise 
+    clojure is used.
+
+    The working directory has to be set properly -- either by means of 
+    'autochdir' or by |:chdir|.
 
 
 
