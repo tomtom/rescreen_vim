@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    849
+" @Revision:    854
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -457,6 +457,7 @@ function! s:prototype.GetSessions(use_cached, ...) dict "{{{3
 endf
 
 
+" :read: s:prototype.EnsureSessionExists(?repl = self.repl) dict
 function! s:prototype.EnsureSessionExists(...) dict "{{{3
     let rv = 0
     let ok = self.SessionExists(0, '.')
@@ -571,13 +572,18 @@ function! rescreen#Args2Dict(args) "{{{3
 endf
 
 
+" :read: rescreen#Init(?run_now = 0, ?ext = {}) "{{{3
 function! rescreen#Init(...) "{{{3
-    let argd = a:0 >= 1 ? a:1 : {}
+    let run_now = a:0 >= 1 ? a:1 : 0
+    let argd = a:0 >= 2 ? a:2 : {}
     " TLogVAR argd
     if !exists('b:rescreen') || (has_key(argd, 'repltype') && argd.repltype != b:rescreen.repltype)
         let rescreen = copy(s:prototype)
         let rescreen = extend(rescreen, argd)
         let b:rescreen = rescreen.InitBuffer()
+    endif
+    if run_now
+        call b:rescreen.EnsureSessionExists()
     endif
     return b:rescreen
 endf
@@ -605,7 +611,7 @@ endf
 " :display: rescreen#Send(lines, ?repltype = '*')
 " Send lines to a REPL.
 function! rescreen#Send(lines, ...) "{{{3
-    let rescreen = call(function('rescreen#Init'), [rescreen#Args2Dict(a:000)])
+    let rescreen = call(function('rescreen#Init'), [0, rescreen#Args2Dict(a:000)])
     call rescreen.EvaluateInSession(a:lines, '')
 endf
 

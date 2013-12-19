@@ -71,10 +71,12 @@ Contents~
 plugin/rescreen.vim~
 
                                                     *:Rescreen*
-:Rescreen [REPLTYPE]
+:Rescreen[!] [REPLTYPE]
     Prepare a session using REPLTYPE for the current buffer. If no 
     REPLTYPE is given, use the default repl (see |g:rescreen#repltype_map|).
     This command can also be used to switch between REPLs.
+
+    With a optional bang (!), start the session immediatly.
 
 
 ========================================================================
