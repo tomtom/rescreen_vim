@@ -4,6 +4,13 @@
 This plugin is supposed to be used from GVIM. It sends code to a repl running 
 inside a screen session.
 
+Default maps (see |g:rescreen#maps|):
+
+    <c-cr> ... Send the current line or the visual selection to the current 
+               screen session
+    <localleader>e{motion} ... Send {motion} lines to the current screen 
+               session
+
 
 -----------------------------------------------------------------------
 Install~

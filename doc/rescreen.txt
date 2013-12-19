@@ -4,6 +4,13 @@
 This plugin is supposed to be used from GVIM. It sends code to a repl running 
 inside a screen session.
 
+Default maps (see |g:rescreen#maps|):
+
+    <c-cr> ... Send the current line or the visual selection to the current 
+               screen session
+    <localleader>e{motion} ... Send {motion} lines to the current screen 
+               session
+
 
 -----------------------------------------------------------------------
 Install~
@@ -20,25 +27,27 @@ please make sure, you have the current version of vimball (vimscript
 ========================================================================
 Contents~
 
-        :Rescreen ....................... |:Rescreen|
-        g:rescreen#mapleader ............ |g:rescreen#mapleader|
-        g:rescreen#maps ................. |g:rescreen#maps|
-        g:rescreen#encoding ............. |g:rescreen#encoding|
-        g:rescreen#cmd .................. |g:rescreen#cmd|
-        g:rescreen#repltype_map ......... |g:rescreen#repltype_map|
-        g:rescreen#session_name_expr .... |g:rescreen#session_name_expr|
-        g:rescreen#shell ................ |g:rescreen#shell|
-        g:rescreen#init_wait ............ |g:rescreen#init_wait|
-        g:rescreen#wait ................. |g:rescreen#wait|
-        g:rescreen#clear ................ |g:rescreen#clear|
-        g:rescreen#sep .................. |g:rescreen#sep|
-        g:rescreen#send_after ........... |g:rescreen#send_after|
-        g:rescreen#timeout .............. |g:rescreen#timeout|
-        g:rescreen#maxsize .............. |g:rescreen#maxsize|
-        rescreen#Operator ............... |rescreen#Operator()|
+        :Rescreen ............................ |:Rescreen|
+        g:rescreen#mapleader ................. |g:rescreen#mapleader|
+        g:rescreen#maps ...................... |g:rescreen#maps|
+        g:rescreen#encoding .................. |g:rescreen#encoding|
+        g:rescreen#cmd ....................... |g:rescreen#cmd|
+        g:rescreen#filetype_map .............. |g:rescreen#filetype_map|
+        g:rescreen#repltype_map .............. |g:rescreen#repltype_map|
+        g:rescreen#session_name_expr ......... |g:rescreen#session_name_expr|
+        g:rescreen#shell ..................... |g:rescreen#shell|
+        g:rescreen#init_wait ................. |g:rescreen#init_wait|
+        g:rescreen#wait ...................... |g:rescreen#wait|
+        g:rescreen#clear ..................... |g:rescreen#clear|
+        g:rescreen#sep ....................... |g:rescreen#sep|
+        g:rescreen#send_after ................ |g:rescreen#send_after|
+        g:rescreen#timeout ................... |g:rescreen#timeout|
+        g:rescreen#maxsize ................... |g:rescreen#maxsize|
+        g:rescreen#cd ........................ |g:rescreen#cd|
+        rescreen#Operator .................... |rescreen#Operator()|
         prototype.InitBuffer
-        :Requit ......................... |:Requit|
-        :Resend ......................... |:Resend|
+        :Requit .............................. |:Requit|
+        :Resend .............................. |:Resend|
         prototype.ExitRepl
         prototype.EvaluateInSession
         prototype.Filename
@@ -50,11 +59,12 @@ Contents~
         prototype.StartSession
         prototype.RunScreen
         prototype.PrepareInput
-        rescreen#Args2Dict .............. |rescreen#Args2Dict()|
-        rescreen#Init ................... |rescreen#Init()|
-        rescreen#Exit ................... |rescreen#Exit()|
-        rescreen#ExitAll ................ |rescreen#ExitAll()|
-        rescreen#Send ................... |rescreen#Send()|
+        rescreen#Args2Dict ................... |rescreen#Args2Dict()|
+        rescreen#Init ........................ |rescreen#Init()|
+        rescreen#Exit ........................ |rescreen#Exit()|
+        rescreen#ExitAll ..................... |rescreen#ExitAll()|
+        rescreen#Send ........................ |rescreen#Send()|
+        rescreen#repl#clojure#Extend ......... |rescreen#repl#clojure#Extend()|
 
 
 ========================================================================
@@ -86,6 +96,10 @@ g:rescreen#encoding            (default: '')
 g:rescreen#cmd                 (default: executable('screen') ? 'screen' : '')
     The name of the screen executable.
     If the variable is user-defined, trust its value.
+
+                                                    *g:rescreen#filetype_map*
+g:rescreen#filetype_map        (default: {...})
+    A map of FILETYPE => REPLTYPE (see |g:rescreen#repltype_map|).
 
                                                     *g:rescreen#repltype_map*
 g:rescreen#repltype_map        (default: {...})
@@ -133,6 +147,10 @@ g:rescreen#timeout             (default: 5)
 
                                                     *g:rescreen#maxsize*
 g:rescreen#maxsize             (default: 2048)
+
+                                                    *g:rescreen#cd*
+g:rescreen#cd                  (default: 'cd')
+    cd command.
 
                                                     *rescreen#Operator()*
 rescreen#Operator(type, ...)
@@ -188,6 +206,13 @@ rescreen#ExitAll()
                                                     *rescreen#Send()*
 rescreen#Send(lines, ?repltype = '*')
     Send lines to a REPL.
+
+
+========================================================================
+autoload/rescreen/repl/clojure.vim~
+
+                                                    *rescreen#repl#clojure#Extend()*
+rescreen#repl#clojure#Extend(dict)
 
 
 
