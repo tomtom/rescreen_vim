@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    866
+" @Revision:    870
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -69,6 +69,9 @@ endif
 
 if !exists('g:rescreen#session_name_expr')
     " A vim expression that is |eval()|uated to get the session name.
+    " Using this default expression, rescreen supports only one repl of 
+    " a given type per VIM instance and screen sessions are not shared 
+    " across several VIM instances.
     let g:rescreen#session_name_expr = '"rescreen_'. v:servername .'_". self.repl'   "{{{2
 endif
 
