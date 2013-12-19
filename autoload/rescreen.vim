@@ -1,6 +1,9 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    786
+" @Revision:    849
+
+
+let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
 
 
 if !exists('g:rescreen#mapleader')
@@ -46,7 +49,7 @@ if !exists('g:rescreen#repltype_map')
                 \ 'ruby': 'irb',
                 \ 'scala': 'scala',
                 \ 'sh': 'bash',
-                \ 'r': 'R --ess',
+                \ 'r': s:windows ? 'R --ess' : 'R',
                 \ 'tcl': 'tclsh',
                 \ }
 endif
@@ -67,7 +70,7 @@ if !exists('g:rescreen#shell')
     "     Linux :: gnome-terminal
     let g:rescreen#shell =  ''   "{{{2
     if has('gui_running')
-        if (has('win32') || has('win64'))
+        if s:windows
             if executable('mintty')
                 let g:rescreen#shell = ' start "" mintty.exe %s'
             elseif executable('powershell')
