@@ -2,7 +2,7 @@
                 Author: Thomas Link, micathom AT gmail com?subject=vim
 
 This plugin is supposed to be used from GVIM. It sends code to a repl running 
-inside a screen session.
+inside a screen session running in a terminal application.
 
 Use the |:Rescreen| command to initialize a screen session. If no repl is 
 defined for the current filetype, bash is used.

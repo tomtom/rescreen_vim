@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    861
+" @Revision:    863
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -171,7 +171,7 @@ function! rescreen#Operator(type, ...) range "{{{3
 endf
 
 
-" :display: s:GetSelection(mode, ?mbeg="'<", ?mend="'>", ?opmode='selection')
+" s:GetSelection(mode, ?mbeg="'<", ?mend="'>", ?opmode='selection')
 " mode can be one of: selection, lines, block
 function! s:GetSelection(mode, ...) range "{{{3
     if a:0 >= 2
@@ -612,7 +612,7 @@ function! rescreen#ExitAll() "{{{3
 endf
 
 
-" :display: rescreen#Send(lines, ?repltype = '*')
+" :display: rescreen#Send(lines, ?repltype)
 " Send lines to a REPL.
 function! rescreen#Send(lines, ...) "{{{3
     let rescreen = call(function('rescreen#Init'), [0, rescreen#Args2Dict(a:000)])

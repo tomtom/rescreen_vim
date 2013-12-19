@@ -2,7 +2,7 @@
                 Author: Thomas Link, micathom AT gmail com?subject=vim
 
 This plugin is supposed to be used from GVIM. It sends code to a repl running 
-inside a screen session.
+inside a screen session running in a terminal application.
 
 Use the |:Rescreen| command to initialize a screen session. If no repl is 
 defined for the current filetype, bash is used.
@@ -163,7 +163,7 @@ g:rescreen#cd                  (default: 'cd')
 rescreen#Operator(type, ...)
     For use as an operator. See 'opfunc'.
 
-s:GetSelection(mode, ?mbeg="'<", ?mend="'>", ?opmode='selection')
+prototype.InitBuffer
 
                                                     *:Requit*
 :Requit
@@ -211,7 +211,7 @@ rescreen#Exit()
 rescreen#ExitAll()
 
                                                     *rescreen#Send()*
-rescreen#Send(lines, ?repltype = '*')
+rescreen#Send(lines, ?repltype)
     Send lines to a REPL.
 
 
