@@ -38,6 +38,15 @@ if !exists('g:rescreen#cmd')
 endif
 
 
+if !exists('g:rescreen#filetype_map')
+    " A map of FILETYPE => REPLTYPE (see |g:rescreen#repltype_map|).
+    " :read: let g:rescreen#filetype_map = {...}   "{{{2
+    let g:rescreen#filetype_map = {
+                \ '*': 'sh',
+                \ }
+endif
+
+
 if !exists('g:rescreen#repltype_map')
     " A map REPLTYPE => REPL. The key "*" defines the default/fallback REPL.
     " REPLTYPE defaults to 'filetype'.
@@ -128,6 +137,12 @@ if !exists('g:rescreen#maxsize')
 endif
 
 
+if !exists('g:rescreen#cd')
+    " cd command.
+    let g:rescreen#cd = 'cd'   "{{{2
+endif
+
+
 " For use as an operator. See 'opfunc'.
 function! rescreen#Operator(type, ...) range "{{{3
     " TLogVAR a:type, a:000
@@ -195,6 +210,7 @@ let s:prototype = {
             \ 'initial_screen_args': '',
             \ 'quitter': '',
             \ 'repltype': '',
+            \ 'repldir': '',
             \ 'WrapResultPrinter': '',
             \ 'WrapResultWriter': '',
             \ }
@@ -205,7 +221,7 @@ function! s:prototype.InitBuffer() dict "{{{3
         let b:rescreens = {}
     endif
     if empty(self.repltype)
-        let self.repltype = empty(&l:filetype) ? '*' : &l:filetype
+        let self.repltype = empty(&l:filetype) ? get(g:rescreen#filetype_map, '*') : get(g:rescreen#filetype_map, &l:filetype, &l:filetype)
     endif
     if has_key(b:rescreens, self.repltype)
         return b:rescreens[self.repltype]
@@ -227,6 +243,10 @@ function! s:prototype.InitBuffer() dict "{{{3
             exec 'xnoremap <buffer> '. map_op .' :call rescreen#Send(<SID>GetSelection("v"))<cr>'
         endif
         " TLogVAR self.repltype
+        try
+            call rescreen#repl#{self.repltype}#Extend(self)
+        catch /^Vim\%((\a\+)\)\=:E117/
+        endtry
         let b:rescreens[self.repltype] = self
         return self
     endif
@@ -259,7 +279,9 @@ endf
 "           x ... evaluate as is
 function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
     " TLogVAR a:input, a:mode
-    call self.EnsureSessionExists()
+    if a:mode !=? 'x'
+        call self.EnsureSessionExists()
+    endif
     if empty(s:tempfile)
         let s:tempfile = substitute(tempname(), '\\', '/', 'g')
     endif
@@ -344,12 +366,19 @@ endf
 
 
 function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
-    " TLogVAR a:initial, a:screen_args
+    " TLogVAR a:type, a:screen_args
     let eval = '-X eval'
-    let shell = 0
-    if a:type =~ '^i\%[nitial]$'
-        if has("gui_running") || !empty(g:rescreen#shell)
-            let shell = 1
+    let shell = !empty(g:rescreen#shell) && a:type =~ '\<s\%[hell]\>'
+    if a:type =~ '\<i\%[nitial]\>'
+        if $TERM =~ '^screen'
+            let cmd = [g:rescreen#cmd,
+                        \ self.GetSessionParams(),
+                        \ eval,
+                        \ '"title vim"',
+                        \ '"screen -t '. self.session_name .'" "at '. self.session_name .' split" focus "select '. self.session_name .'"',
+                        \ 'focus "select vim"'
+                        \ ]
+        elseif !empty(g:rescreen#shell)
             let cmd = [
                         \ g:rescreen#cmd,
                         \ self.GetSessionParams(),
@@ -359,14 +388,6 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
             "     call add(cmd, '-d -R')
             " endif
             " call add(cmd, '-X partial on')
-        elseif $TERM =~ '^screen'
-            let cmd = [g:rescreen#cmd,
-                        \ self.GetSessionParams(),
-                        \ eval,
-                        \ '"title vim"',
-                        \ '"screen -t '. self.session_name .'" "at '. self.session_name .' split" focus "select '. self.session_name .'"',
-                        \ 'focus "select vim"'
-                        \ ]
         else
             throw 'Rescreen: You have to run vim within screen or set g:rescreen#shell'
         endif
@@ -404,7 +425,9 @@ endf
 
 
 function! s:prototype.GetSessionParams() dict "{{{3
-    return has('gui_running') ? ('-D -R -S '. self.session_name) : ''
+    let p = has('gui_running') ? ('-D -R -S '. self.session_name) : ''
+    let p .= ' -p '. self.session_name
+    return p
 endf
 
 
@@ -437,11 +460,25 @@ endf
 function! s:prototype.EnsureSessionExists(...) dict "{{{3
     let rv = 0
     let ok = self.SessionExists(0, '.')
-    if !ok
+    let any_attached = self.SessionExists(1, '(Attached)')
+    " TLogVAR ok, any_attached
+    if !ok || !any_attached
+        " if !ok
         let repl = a:0 >= 1 ? a:1 : self.repl
         " TLogVAR repl
-        call self.StartSession()
-        if !empty(repl)
+        let type = 'init shell'
+        " let type = ''
+        " if !ok
+        "     let type .= ' init'
+        " endif
+        " if !any_attached
+        "     let type .= ' shell'
+        " endif
+        call self.StartSession(type)
+        if !ok && !empty(repl)
+            if !empty(self.repldir)
+                call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(self.repldir), 'x')
+            endif
             call self.EvaluateInSession(repl, 'x')
         endif
         let rv = 1
@@ -450,8 +487,8 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
 endf
 
 
-function! s:prototype.StartSession() dict "{{{3
-    let cmd = self.GetScreenCmd('init', '')
+function! s:prototype.StartSession(type) dict "{{{3
+    let cmd = self.GetScreenCmd(a:type, '')
     " TLogVAR cmd
     if !empty(cmd)
         exec 'silent! !'. cmd
