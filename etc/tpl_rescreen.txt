@@ -8,8 +8,8 @@ Default maps (see |g:rescreen#maps|):
 
     <c-cr> ... Send the current line or the visual selection to the current 
                screen session
-    <localleader>e{motion} ... Send {motion} lines to the current screen 
-               session
+    gx.    ... Send the current line to the current screen session
+    gx{motion} ... Send {motion} lines to the current screen session
 
 
 -----------------------------------------------------------------------

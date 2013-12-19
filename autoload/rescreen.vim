@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    854
+" @Revision:    859
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -8,7 +8,7 @@ let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
 
 if !exists('g:rescreen#mapleader')
     " Map leader used in |g:rescreen#maps|.
-    let g:rescreen#mapleader = '<localleader>e'   "{{{2
+    let g:rescreen#mapleader = 'gx'   "{{{2
 endif
 
 
@@ -18,6 +18,7 @@ if !exists('g:rescreen#maps')
     let g:rescreen#maps = {
                 \ 'send': '<c-cr>',
                 \ 'op': g:rescreen#mapleader,
+                \ 'line': g:rescreen#mapleader . '.',
                 \ }
 endif
 
@@ -231,17 +232,18 @@ function! s:prototype.InitBuffer() dict "{{{3
         let self.session_name = substitute(session_name, '\W', '_', 'g')
         command! -bar -buffer -bang Requit if empty('<bang>') | call rescreen#Exit() | else | call rescreen#ExitAll() | endif
         command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
-        let map_send = get(g:rescreen#maps, 'send', '')
-        if !empty(map_send)
-            exec 'nnoremap <buffer>' map_send ':call rescreen#Send(getline("."))<cr>'
-            exec 'inoremap <buffer>' map_send '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
-            exec 'xnoremap <buffer>' map_send ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
-        endif
-        let map_op = get(g:rescreen#maps, 'op', '')
-        if !empty(map_op)
-            exec 'nnoremap <buffer> '. map_op .' :set opfunc=rescreen#Operator<cr>g@'
-            exec 'xnoremap <buffer> '. map_op .' :call rescreen#Send(<SID>GetSelection("v"))<cr>'
-        endif
+        for [mtype, mkey] in items(g:rescreen#maps)
+            if mtype == 'send'
+                exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>'
+                exec 'inoremap <buffer>' mkey '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
+                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
+            elseif mtype == 'op'
+                exec 'nnoremap <buffer>' mkey ':set opfunc=rescreen#Operator<cr>g@'
+                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
+            elseif mtype == 'line'
+                exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>'
+            endif
+        endfor
         " TLogVAR self.repltype
         try
             call rescreen#repl#{self.repltype}#Extend(self)
