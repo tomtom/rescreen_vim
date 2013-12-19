@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    870
+" @Revision:    878
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -217,8 +217,7 @@ let s:prototype = {
             \ 'quitter': '',
             \ 'repltype': '',
             \ 'repldir': '',
-            \ 'WrapResultPrinter': '',
-            \ 'WrapResultWriter': '',
+            \ 'wrapper': {},
             \ }
 
 
@@ -564,22 +563,29 @@ function! s:prototype.PrepareInput(input, mode) dict "{{{3
             echoerr "Rescreen: Error when encoding input: Check the value of g:rescreen#encoding:" v:errormsg
         endtry
     endif
-    if a:mode == 'p'
-        if !empty(self.WrapResultPrinter)
-            let input = self.WrapResultPrinter(input)
-        else
-            throw 'rescreen: No support for printing results'
-        endif
-    elseif a:mode == 'r'
-        if !empty(self.WrapResultWriter)
+    if self.IsSupportedMode(a:mode)
+        if a:mode == 'p'
+            let input = self.wrapper.WrapResultPrinter(self, input)
+        elseif a:mode == 'r'
             let xtempfile = self.Filename(s:tempfile)
-            let input = self.WrapResultWriter(input, xtempfile)
-        else
-            throw 'rescreen: No support for returning results'
+            let input = self.wrapper.WrapResultWriter(self, input, xtempfile)
         endif
+    else
+        throw 'rescreen: Mode '. a:mode .' is not supported in the current session'
     endif
     " TLogVAR input
     return input
+endf
+
+
+function! s:prototype.IsSupportedMode(mode) dict "{{{3
+    if a:mode == 'p'
+        return has_key(self.wrapper, 'WrapResultPrinter') && type(self.wrapper.WrapResultPrinter) == 2
+    elseif a:mode == 'r'
+        return has_key(self.wrapper, 'WrapResultWriter') && type(self.wrapper.WrapResultWriter) == 2
+    else
+        return 1
+    endif
 endf
 
 
