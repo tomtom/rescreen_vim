@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    859
+" @Revision:    861
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -49,8 +49,10 @@ endif
 
 
 if !exists('g:rescreen#repltype_map')
-    " A map REPLTYPE => REPL. The key "*" defines the default/fallback REPL.
-    " REPLTYPE defaults to 'filetype'.
+    " A map REPLTYPE => REPL. The key "*" defines the default/fallback 
+    " REPL, which is bash.
+    " REPLTYPE defaults to 'filetype' after mapping it to 
+    " |g:rescreen#filetype_map|.
     " :read: let g:rescreen#repltype_map = {...}   "{{{2
     let g:rescreen#repltype_map = {
                 \ '*': 'bash',

@@ -4,6 +4,9 @@
 This plugin is supposed to be used from GVIM. It sends code to a repl running 
 inside a screen session.
 
+Use the |:Rescreen| command to initialize a screen session. If no repl is 
+defined for the current filetype, bash is used.
+
 Default maps (see |g:rescreen#maps|):
 
     <c-cr> ... Send the current line or the visual selection to the current 
@@ -105,8 +108,10 @@ g:rescreen#filetype_map        (default: {...})
 
                                                     *g:rescreen#repltype_map*
 g:rescreen#repltype_map        (default: {...})
-    A map REPLTYPE => REPL. The key "*" defines the default/fallback REPL.
-    REPLTYPE defaults to 'filetype'.
+    A map REPLTYPE => REPL. The key "*" defines the default/fallback 
+    REPL, which is bash.
+    REPLTYPE defaults to 'filetype' after mapping it to 
+    |g:rescreen#filetype_map|.
 
                                                     *g:rescreen#session_name_expr*
 g:rescreen#session_name_expr   (default: '"rescreen_'. v:servername .'_". self.repl')
