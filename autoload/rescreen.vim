@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    878
+" @Revision:    881
 
 
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
@@ -57,6 +57,7 @@ if !exists('g:rescreen#repltype_map')
     let g:rescreen#repltype_map = {
                 \ '*': 'bash',
                 \ 'clojure': 'clojure',
+                \ 'haskell': 'ghci',
                 \ 'python': 'python',
                 \ 'ruby': 'irb',
                 \ 'scala': 'scala',
@@ -214,6 +215,7 @@ let s:tempfile = ''
 let s:prototype = {
             \ 'convert_path': has('win32unix') ? 'cygpath -m %s' : '',
             \ 'initial_screen_args': '',
+            \ 'maps': copy(g:rescreen#maps),
             \ 'quitter': '',
             \ 'repltype': '',
             \ 'repldir': '',
@@ -245,7 +247,7 @@ function! s:prototype.InitBuffer() dict "{{{3
         " Send TEXT to the current screen session.
         " :display: :Resend TEXT
         command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
-        for [mtype, mkey] in items(g:rescreen#maps)
+        for [mtype, mkey] in items(self.maps)
             if mtype == 'send'
                 exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>'
                 exec 'inoremap <buffer>' mkey '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
