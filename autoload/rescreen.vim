@@ -1,8 +1,9 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    881
+" @Revision:    914
 
 
+let s:registry = {}
 let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
 
 
@@ -216,10 +217,10 @@ let s:prototype = {
             \ 'convert_path': has('win32unix') ? 'cygpath -m %s' : '',
             \ 'initial_screen_args': '',
             \ 'maps': copy(g:rescreen#maps),
-            \ 'quitter': '',
-            \ 'repltype': '',
+            \ 'os_win': s:windows,
+            \ 'repl_handler': {},
             \ 'repldir': '',
-            \ 'wrapper': {},
+            \ 'repltype': '',
             \ }
 
 
@@ -237,6 +238,14 @@ function! s:prototype.InitBuffer() dict "{{{3
         let self.repl = get(g:rescreen#repltype_map, self.repltype, g:rescreen#repltype_map['*'])
         let session_name = eval(g:rescreen#session_name_expr)
         let self.session_name = substitute(session_name, '\W', '_', 'g')
+        if !has_key(s:registry, self.session_name)
+            let s:registry[self.session_name] = {'rescreen': self, 'bufnrs': []}
+        endif
+        let bufnrs = s:registry[self.session_name].bufnrs
+        if index(bufnrs, self.bufnr) == -1
+            call add(bufnrs, self.bufnr)
+            exec 'autocmd ReScreen BufDelete <buffer> call s:RemoveBuffer(' self.bufnr ',' string(self.session_name) ')'
+        endif
         " Buffer-local
         " Stop the current screen session.
         " With a bang (!), stop all screen sessions for the current 
@@ -264,8 +273,22 @@ function! s:prototype.InitBuffer() dict "{{{3
             call rescreen#repl#{self.repltype}#Extend(self)
         catch /^Vim\%((\a\+)\)\=:E117/
         endtry
+        let self.repl_handler.rescreen = self
         let b:rescreens[self.repltype] = self
         return self
+    endif
+endf
+
+
+function! s:RemoveBuffer(bufnr, session_name) "{{{3
+    let session = s:registry[a:session_name]
+    let bufnrs = session.bufnrs
+    let i = index(bufnrs, a:bufnr)
+    if i != -1
+        call remove(bufnrs, i)
+    endif
+    if empty(bufnrs)
+        call session.rescreen.ExitRepl()
     endif
 endf
 
@@ -274,8 +297,8 @@ endf
 function! s:prototype.ExitRepl() dict "{{{3
     let rv = 0
     if self.SessionExists(0, '.')
-        if !empty(self.quitter)
-            call self.EvaluateInSession(self.quitter, '')
+        if has_key(self.repl_handler, 'ExitRepl')
+            call self.repl_handler.ExitRepl()
         endif
         call self.RunScreen('-X eval "msgwait 5" "msgminwait 1"')
         call self.RunScreen('-X kill')
@@ -286,7 +309,9 @@ function! s:prototype.ExitRepl() dict "{{{3
         if !empty(s:tempfile) && filereadable(s:tempfile)
             call delete(s:tempfile)
         endif
-        call remove(b:rescreens, self.repltype)
+        if bufnr('%') == self.bufnr
+            call remove(b:rescreens, self.repltype)
+        endif
     endif
     return rv
 endf
@@ -567,10 +592,10 @@ function! s:prototype.PrepareInput(input, mode) dict "{{{3
     endif
     if self.IsSupportedMode(a:mode)
         if a:mode == 'p'
-            let input = self.wrapper.WrapResultPrinter(self, input)
+            let input = self.repl_handler.WrapResultPrinter(input)
         elseif a:mode == 'r'
             let xtempfile = self.Filename(s:tempfile)
-            let input = self.wrapper.WrapResultWriter(self, input, xtempfile)
+            let input = self.repl_handler.WrapResultWriter(input, xtempfile)
         endif
     else
         throw 'rescreen: Mode '. a:mode .' is not supported in the current session'
@@ -582,9 +607,9 @@ endf
 
 function! s:prototype.IsSupportedMode(mode) dict "{{{3
     if a:mode == 'p'
-        return has_key(self.wrapper, 'WrapResultPrinter') && type(self.wrapper.WrapResultPrinter) == 2
+        return has_key(self.repl_handler, 'WrapResultPrinter') && type(self.repl_handler.WrapResultPrinter) == 2
     elseif a:mode == 'r'
-        return has_key(self.wrapper, 'WrapResultWriter') && type(self.wrapper.WrapResultWriter) == 2
+        return has_key(self.repl_handler, 'WrapResultWriter') && type(self.repl_handler.WrapResultWriter) == 2
     else
         return 1
     endif
@@ -617,6 +642,7 @@ function! rescreen#Init(...) "{{{3
     if !exists('b:rescreen') || (has_key(argd, 'repltype') && argd.repltype != b:rescreen.repltype)
         let rescreen = copy(s:prototype)
         let rescreen = extend(rescreen, argd)
+        let rescreen.bufnr = bufnr('%')
         let b:rescreen = rescreen.InitBuffer()
     endif
     if run_now

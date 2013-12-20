@@ -2,7 +2,7 @@
 " @Website:     http://www.vim.org/account/profile.php?user_id=4037
 " @GIT:         http://github.com/tomtom/rescreen_vim
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    15
+" @Revision:    16
 " GetLatestVimScripts: 0 0 :AutoInstall: rescreen.vim
 
 if &cp || exists("loaded_rescreen")
@@ -21,6 +21,11 @@ set cpo&vim
 "
 " With a optional bang (!), start the session immediatly.
 command! -bang -nargs=* Rescreen let b:rescreen = rescreen#Init(!empty('<bang>'), rescreen#Args2Dict([<f-args>]))
+
+
+augroup ReScreen
+    autocmd!
+augroup END
 
 
 let &cpo = s:save_cpo
