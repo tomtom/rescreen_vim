@@ -677,7 +677,9 @@ endf
 " Send lines to a REPL. Use repltype if provided. Otherwise use the 
 " current screen session.
 function! rescreen#Send(lines, ...) "{{{3
-    let rescreen = call(function('rescreen#Init'), [0, rescreen#Args2Dict(a:000)])
-    call rescreen.EvaluateInSession(a:lines, '')
+    if !empty(a:lines)
+        let rescreen = call(function('rescreen#Init'), [0, rescreen#Args2Dict(a:000)])
+        call rescreen.EvaluateInSession(a:lines, '')
+    endif
 endf
 
