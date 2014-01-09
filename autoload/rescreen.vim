@@ -1,10 +1,14 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    921
+" @Revision:    943
 
 
 let s:registry = {}
-let s:windows = has('win16') || has('win32') || has('win64') || has('win95')
+
+
+if !exists('g:rescreen#windows')
+    let g:rescreen#windows = has('win16') || has('win32') || has('win64') || has('win95')   "{{{2
+endif
 
 
 if !exists('g:rescreen#mapleader')
@@ -63,7 +67,7 @@ if !exists('g:rescreen#repltype_map')
                 \ 'ruby': 'irb',
                 \ 'scala': 'scala',
                 \ 'sh': 'bash',
-                \ 'r': s:windows ? 'R --ess' : 'R',
+                \ 'r': g:rescreen#windows ? 'R --ess' : 'R',
                 \ 'tcl': 'tclsh',
                 \ }
 endif
@@ -87,7 +91,7 @@ if !exists('g:rescreen#shell')
     "     Linux :: gnome-terminal
     let g:rescreen#shell =  ''   "{{{2
     if has('gui_running')
-        if s:windows
+        if g:rescreen#windows
             if executable('mintty')
                 let g:rescreen#shell = ' start "" mintty.exe %s'
             elseif executable('powershell')
@@ -217,7 +221,7 @@ let s:prototype = {
             \ 'convert_path': has('win32unix') ? 'cygpath -m %s' : '',
             \ 'initial_screen_args': '',
             \ 'maps': copy(g:rescreen#maps),
-            \ 'os_win': s:windows,
+            \ 'os_win': g:rescreen#windows,
             \ 'repl_handler': {},
             \ 'repldir': '',
             \ 'repltype': '',
