@@ -15,6 +15,12 @@ Default maps (see |g:rescreen#maps|):
     gx{motion} ... Send {motion} lines to the current screen session
 
 
+Background:
+Why another screen-based plugin? The code for this plugin was originally 
+created for my rcom_vim plugin to fit its requirements. Since it has proven 
+useful, I put the code into a plugin of its own.
+
+
 -----------------------------------------------------------------------
 Install~
 
