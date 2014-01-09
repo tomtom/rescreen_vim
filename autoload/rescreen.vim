@@ -236,10 +236,12 @@ function! s:prototype.InitBuffer() dict "{{{3
     if empty(self.repltype)
         let self.repltype = empty(&l:filetype) ? get(g:rescreen#filetype_map, '*') : get(g:rescreen#filetype_map, &l:filetype, &l:filetype)
     endif
+    " TLogVAR self.repltype
     if has_key(b:rescreens, self.repltype)
         return b:rescreens[self.repltype]
     else
         let self.repl = get(g:rescreen#repltype_map, self.repltype, g:rescreen#repltype_map['*'])
+        " TLogVAR self.repl
         let session_name = eval(g:rescreen#session_name_expr)
         let self.session_name = substitute(session_name, '\W', '_', 'g')
         if !has_key(s:registry, self.session_name)
@@ -276,12 +278,13 @@ function! s:prototype.InitBuffer() dict "{{{3
         try
             call rescreen#repl#{self.repltype}#Extend(self)
         catch /^Vim\%((\a\+)\)\=:E117/
+            " echohl WarningMsg
+            " echom "Rescreen: No custom repl defined for ". self.repltype
+            " echohl NONE
         endtry
+        " TLogVAR self.repl
         let self.repl_handler.rescreen = self
         let b:rescreens[self.repltype] = self
-        if has_key(self.repl_handler, 'inital_lines')
-            call rescreen#Send(self.repl_handler.inital_lines)
-        endif
         return self
     endif
 endf
@@ -503,12 +506,14 @@ function! s:prototype.GetSessions(use_cached, ...) dict "{{{3
     else
         let filters = a:000
     endif
+    " TLogVAR filters, sessions
     for filter in filters
         if filter == "."
             let filter = self.session_name
         endif
         let sessions = filter(sessions, 'v:val =~ filter')
     endfor
+    " TLogVAR sessions
     return sessions
 endf
 
@@ -538,6 +543,10 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
                 call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(self.repldir), 'x')
             endif
             call self.EvaluateInSession(repl, 'x')
+            if has_key(self.repl_handler, 'initial_lines')
+                " TLogVAR self.repl_handler.initial_lines
+                call rescreen#Send(self.repl_handler.initial_lines)
+            endif
         endif
         let rv = 1
     endif
