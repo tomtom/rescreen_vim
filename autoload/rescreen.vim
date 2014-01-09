@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    914
+" @Revision:    921
 
 
 let s:registry = {}
@@ -275,6 +275,9 @@ function! s:prototype.InitBuffer() dict "{{{3
         endtry
         let self.repl_handler.rescreen = self
         let b:rescreens[self.repltype] = self
+        if has_key(self.repl_handler, 'inital_lines')
+            call rescreen#Send(self.repl_handler.inital_lines)
+        endif
         return self
     endif
 endf
