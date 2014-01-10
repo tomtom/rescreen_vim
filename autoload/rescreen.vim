@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    957
+" @Revision:    963
 
 
 let s:active_sessions = {}
@@ -169,13 +169,13 @@ function! rescreen#Operator(type, ...) range "{{{3
     let reg_save = @@
     try
         if a:0
-            let text = s:GetSelection("o")
+            let text = rescreen#GetSelection("o")
         elseif a:type == 'line'
-            let text = s:GetSelection("o", "'[", "']", 'lines')
+            let text = rescreen#GetSelection("o", "'[", "']", 'lines')
         elseif a:type == 'block'
-            let text = s:GetSelection("o", "'[", "']", 'block')
+            let text = rescreen#GetSelection("o", "'[", "']", 'block')
         else
-            let text = s:GetSelection("o", "'[", "']")
+            let text = rescreen#GetSelection("o", "'[", "']")
         endif
         " TLogVAR text
         call rescreen#Send(text)
@@ -186,9 +186,9 @@ function! rescreen#Operator(type, ...) range "{{{3
 endf
 
 
-" s:GetSelection(mode, ?mbeg="'<", ?mend="'>", ?opmode='selection')
+" rescreen#GetSelection(mode, ?mbeg="'<", ?mend="'>", ?opmode='selection')
 " mode can be one of: selection, lines, block
-function! s:GetSelection(mode, ...) range "{{{3
+function! rescreen#GetSelection(mode, ...) range "{{{3
     if a:0 >= 2
         let mbeg = a:1
         let mend = a:2
@@ -272,10 +272,10 @@ function! s:prototype.InitBuffer() dict "{{{3
             if mtype == 'send'
                 exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>'
                 exec 'inoremap <buffer>' mkey '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
-                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
+                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(rescreen#GetSelection("v"))<cr>'
             elseif mtype == 'op'
                 exec 'nnoremap <buffer>' mkey ':set opfunc=rescreen#Operator<cr>g@'
-                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(<SID>GetSelection("v"))<cr>'
+                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(rescreen#GetSelection("v"))<cr>'
             elseif mtype == 'line'
                 exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>'
             endif
@@ -643,12 +643,13 @@ endf
 
 " Turn positional arguments into a dictionary. The arguments are:
 "   0. repltype
+"   1. mode
 " :nodoc:
 function! rescreen#Args2Dict(args) "{{{3
     let argd = {}
     if !empty(a:args)
-        let argn = ['repltype']
-        for i in range(0, len(argn) - 1)
+        let argn = ['repltype', 'mode']
+        for i in range(0, len(a:args) - 1)
             let name = argn[i]
             let val = a:args[i]
             let argd[name] = val
@@ -713,13 +714,14 @@ if g:rescreen#cleanup_on_exit
 endif
 
 
-" :display: rescreen#Send(lines, ?repltype)
+" :display: rescreen#Send(lines, ?repltype, ?mode)
 " Send lines to a REPL. Use repltype if provided. Otherwise use the 
 " current screen session.
 function! rescreen#Send(lines, ...) "{{{3
     if !empty(a:lines)
-        let rescreen = call(function('rescreen#Init'), [0, rescreen#Args2Dict(a:000)])
-        call rescreen.EvaluateInSession(a:lines, '')
+        let args = rescreen#Args2Dict(a:000)
+        let rescreen = call(function('rescreen#Init'), [0, args])
+        call rescreen.EvaluateInSession(a:lines, get(args, 'mode', ''))
     endif
 endf
 
