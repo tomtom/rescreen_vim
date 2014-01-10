@@ -1,9 +1,15 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    943
+" @Revision:    957
 
 
-let s:registry = {}
+let s:active_sessions = {}
+
+
+if !exists('g:rescreen#cleanup_on_exit')
+    " If true, close all running sessions when leaving VIM.
+    let g:rescreen#cleanup_on_exit = 1   "{{{2
+endif
 
 
 if !exists('g:rescreen#windows')
@@ -244,10 +250,10 @@ function! s:prototype.InitBuffer() dict "{{{3
         " TLogVAR self.repl
         let session_name = eval(g:rescreen#session_name_expr)
         let self.session_name = substitute(session_name, '\W', '_', 'g')
-        if !has_key(s:registry, self.session_name)
-            let s:registry[self.session_name] = {'rescreen': self, 'bufnrs': []}
+        if !has_key(s:active_sessions, self.session_name)
+            let s:active_sessions[self.session_name] = {'rescreen': self, 'bufnrs': []}
         endif
-        let bufnrs = s:registry[self.session_name].bufnrs
+        let bufnrs = s:active_sessions[self.session_name].bufnrs
         if index(bufnrs, self.bufnr) == -1
             call add(bufnrs, self.bufnr)
             exec 'autocmd ReScreen BufDelete <buffer> call s:RemoveBuffer(' self.bufnr ',' string(self.session_name) ')'
@@ -291,12 +297,15 @@ endf
 
 
 function! s:RemoveBuffer(bufnr, session_name) "{{{3
-    let session = s:registry[a:session_name]
+    " TLogVAR a:bufnr, a:session_name
+    let session = s:active_sessions[a:session_name]
     let bufnrs = session.bufnrs
     let i = index(bufnrs, a:bufnr)
+    " TLogVAR i
     if i != -1
         call remove(bufnrs, i)
     endif
+    " TLogVAR bufnrs
     if empty(bufnrs)
         call session.rescreen.ExitRepl()
     endif
@@ -687,6 +696,21 @@ function! rescreen#ExitAll() "{{{3
         unlet! b:rescreen b:rescreens
     endif
 endf
+
+
+" Stop all screen session.
+function! s:ExitAllSessions() "{{{3
+    for [sname, entry] in items(s:active_sessions)
+        let rescreen = entry.rescreen
+        call rescreen.ExitRepl()
+        call remove(s:active_sessions, sname)
+    endfor
+endf
+
+
+if g:rescreen#cleanup_on_exit
+    autocmd ReScreen VimLeave * call s:ExitAllSessions()
+endif
 
 
 " :display: rescreen#Send(lines, ?repltype)
