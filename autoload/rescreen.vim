@@ -229,13 +229,15 @@ let s:tempfile = ''
 
 
 let s:prototype = {
-            \ 'convert_path': has('win32unix') ? 'cygpath -m %s' : '',
+            \ 'shell_convert_path': g:rescreen#convert_path,
+            \ 'repl_convert_path': g:rescreen#convert_path,
             \ 'initial_screen_args': '',
             \ 'maps': copy(g:rescreen#maps),
             \ 'os_win': g:rescreen#windows,
             \ 'repl_handler': {},
             \ 'repldir': '',
             \ 'repltype': '',
+            \ 'shell': g:rescreen#shell,
             \ }
 
 
@@ -423,10 +425,10 @@ endf
 
 " :nodoc:
 function! s:prototype.Filename(filename) dict "{{{3
-    if empty(self.convert_path)
+    if empty(self.repl_convert_path)
         return a:filename
     else
-        let cmd = printf(self.convert_path, shellescape(a:filename))
+        let cmd = printf(self.repl_convert_path, shellescape(a:filename))
         let filename = system(cmd)
         " TLogVAR cmd, filename
         return filename
@@ -554,8 +556,15 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
         call self.StartSession(type)
         if !ok && !empty(repl)
             if !empty(self.repldir)
-                call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(self.repldir), 'x')
+                let repldir = self.repldir
+                if !empty(self.shell_convert_path)
+                    let repldir = eval(printf(self.shell_convert_path, repldir))
+                    let repldir = substitute(repldir, '\(^\n\+\|\n\+$\)', '', 'g')
+                endif
+                " TLogVAR repldir
+                call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(repldir), 'x')
             endif
+            " TLogVAR repl
             call self.EvaluateInSession(repl, 'x')
             if has_key(self.repl_handler, 'initial_lines')
                 " TLogVAR self.repl_handler.initial_lines
