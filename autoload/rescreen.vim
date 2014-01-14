@@ -144,7 +144,7 @@ endif
 if !exists('g:rescreen#send_after')
     " A key sequence sent to the terminal via screen's stuff command 
     " after evaluating input.
-    let g:rescreen#send_after = '\15\15'   "{{{2
+    let g:rescreen#send_after = ''   "{{{2
 endif
 
 
