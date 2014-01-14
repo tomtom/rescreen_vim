@@ -112,6 +112,11 @@ if !exists('g:rescreen#shell')
 endif
 
 
+if !exists('g:rescreen#convert_path')
+    let g:rescreen#convert_path = g:rescreen#windows ? 'system(''cygpath -m "%s"'')' : ''   "{{{2
+endif
+
+
 if !exists('g:rescreen#init_wait')
     " How long to wait after starting the terminal.
     let g:rescreen#init_wait = 1   "{{{2
