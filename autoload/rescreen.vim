@@ -739,3 +739,21 @@ function! rescreen#Send(lines, ...) "{{{3
     endif
 endf
 
+
+function! rescreen#Complete(findstart, base) "{{{3
+    " TLogVAR a:findstart, a:base
+    if a:findstart
+        let line = getline('.')
+        let start = col('.') - 1
+        " while start > 0 && line[start - 1] =~ '[._[:alnum:]]'
+        while start > 0 && line[start - 1] =~ '\k'
+            let start -= 1
+        endwhile
+        return start
+    elseif exists('b:rescreen_completions')
+        return call(b:rescreen_completions, [a:base])
+    else
+        return []
+    endif
+endf
+
