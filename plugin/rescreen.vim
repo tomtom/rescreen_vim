@@ -2,7 +2,7 @@
 " @Website:     http://www.vim.org/account/profile.php?user_id=4037
 " @GIT:         http://github.com/tomtom/rescreen_vim
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    16
+" @Revision:    18
 " GetLatestVimScripts: 0 0 :AutoInstall: rescreen.vim
 
 if &cp || exists("loaded_rescreen")
@@ -14,12 +14,17 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 
-" :display: :Rescreen[!] [REPLTYPE]
+" :display: :Rescreen[!] [OPTIONS] [REPLTYPE] [MODE]
 " Prepare a session using REPLTYPE for the current buffer. If no 
 " REPLTYPE is given, use the default repl (see |g:rescreen#repltype_map|).
 " This command can also be used to switch between REPLs.
 "
 " With a optional bang (!), start the session immediatly.
+"
+" Arguments can also be passed as OPTIONS:
+"   -default ... The current buffer's default repl
+"   -repltype=REPLTYPE
+"   -mode=MODE
 command! -bang -nargs=* Rescreen let b:rescreen = rescreen#Init(!empty('<bang>'), rescreen#Args2Dict([<f-args>]))
 
 

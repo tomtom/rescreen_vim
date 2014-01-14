@@ -277,9 +277,9 @@ function! s:prototype.InitBuffer() dict "{{{3
         command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
         for [mtype, mkey] in items(self.maps)
             if mtype == 'send'
-                exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>'
+                exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>+'
                 exec 'inoremap <buffer>' mkey '<c-\><c-o>:call rescreen#Send(getline("."))<cr>'
-                exec 'xnoremap <buffer>' mkey ':call rescreen#Send(rescreen#GetSelection("v"))<cr>'
+                exec 'vnoremap <buffer>' mkey ':call rescreen#Send(rescreen#GetSelection("v"))<cr>'
             elseif mtype == 'op'
                 exec 'nnoremap <buffer>' mkey ':set opfunc=rescreen#Operator<cr>g@'
                 exec 'xnoremap <buffer>' mkey ':call rescreen#Send(rescreen#GetSelection("v"))<cr>'
@@ -452,7 +452,7 @@ endf
 function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
     " TLogVAR a:type, a:screen_args
     let eval = '-X eval'
-    let shell = !empty(g:rescreen#shell) && a:type =~ '\<s\%[hell]\>'
+    let use_shell = !empty(self.shell) && a:type =~ '\<s\%[hell]\>'
     if a:type =~ '\<i\%[nitial]\>'
         if $TERM =~ '^screen'
             let cmd = [g:rescreen#cmd,
@@ -462,7 +462,7 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
                         \ '"screen -t '. self.session_name .'" "at '. self.session_name .' split" focus "select '. self.session_name .'"',
                         \ 'focus "select vim"'
                         \ ]
-        elseif !empty(g:rescreen#shell)
+        elseif !empty(self.shell)
             let cmd = [
                         \ g:rescreen#cmd,
                         \ self.GetSessionParams(),
@@ -500,8 +500,8 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
         endif
     endif
     let cmdline = join(cmd)
-    if shell
-        let cmdline = printf(g:rescreen#shell, cmdline)
+    if use_shell
+        let cmdline = printf(self.shell, cmdline)
     endif
     " TLogVAR cmdline
     return cmdline
@@ -596,7 +596,7 @@ function! s:prototype.StartSession(type) dict "{{{3
     if !empty(cmd)
         exec 'silent! !'. cmd
         if has("gui_running")
-            if !empty(g:rescreen#shell)
+            if !empty(self.shell)
                 exec 'sleep' g:rescreen#init_wait
             endif
         else
@@ -675,9 +675,18 @@ function! rescreen#Args2Dict(args) "{{{3
     let argd = {}
     if !empty(a:args)
         let argn = ['repltype', 'mode']
+        let j = 0
         for i in range(0, len(a:args) - 1)
-            let name = argn[i]
             let val = a:args[i]
+            if val =~ '^-'
+                let m = matchlist(val, '^-\(no-\)\?\(\w\+\)\%(=\(.\+\)\)\?$')
+                let name = m[2]
+                let val = empty(m[3]) ? empty(m[1]) : m[3]
+                " TLogVAR m, name, val
+            else
+                let name = argn[j]
+                let j += 1
+            endif
             let argd[name] = val
         endfor
     endif
@@ -690,12 +699,24 @@ endf
 function! rescreen#Init(...) "{{{3
     let run_now = a:0 >= 1 ? a:1 : 0
     let argd = a:0 >= 2 ? a:2 : {}
+    if !has_key(argd, 'repltype') && exists('b:rescreen_default')
+        let argd.repltype = b:rescreen_default
+    endif
     " TLogVAR argd
     if !exists('b:rescreen') || (has_key(argd, 'repltype') && argd.repltype != b:rescreen.repltype)
         let rescreen = copy(s:prototype)
         let rescreen = extend(rescreen, argd)
         let rescreen.bufnr = bufnr('%')
         let b:rescreen = rescreen.InitBuffer()
+        if get(b:rescreen, 'default', 0)
+            if exists('b:rescreen_default')
+                if b:rescreen_default != b:rescreen.repltype
+                    throw "Rescreen: Buffer must have only one default repltype: ". b:rescreen_default .' != '. b:rescreen.repltype
+                endif
+            else
+                let b:rescreen_default = b:rescreen.repltype
+            endif
+        endif
     endif
     if run_now
         call b:rescreen.EnsureSessionExists()
