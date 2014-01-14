@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1005
+" @Revision:    1017
 
 
 let s:active_sessions = {}
@@ -84,7 +84,7 @@ if !exists('g:rescreen#session_name_expr')
     " Using this default expression, rescreen supports only one repl of 
     " a given type per VIM instance and screen sessions are not shared 
     " across several VIM instances.
-    let g:rescreen#session_name_expr = '"rescreen_'. v:servername .'_". self.repltype'   "{{{2
+    let g:rescreen#session_name_expr = '"rescreen_'. v:servername .'_". self.repltype ."_". self.initial_cli_args'   "{{{2
 endif
 
 
@@ -483,6 +483,10 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
                 call add(cmd, initial_screen_args)
             endif
         endif
+        let initial_cli_args = get(self, 'initial_cli_args', '')
+        if !empty(initial_cli_args)
+            call add(cmd, initial_cli_args)
+        endif
     else
         let cmd = [
                     \ g:rescreen#cmd,
@@ -672,9 +676,9 @@ endf
 "   1. mode
 " :nodoc:
 function! rescreen#Args2Dict(args) "{{{3
-    let argd = {}
+    let argd = {'initial_cli_args': ''}
     if !empty(a:args)
-        let argn = ['repltype', 'mode']
+        let argn = ['repltype']
         let j = 0
         for i in range(0, len(a:args) - 1)
             let val = a:args[i]
@@ -683,9 +687,12 @@ function! rescreen#Args2Dict(args) "{{{3
                 let name = m[2]
                 let val = empty(m[3]) ? empty(m[1]) : m[3]
                 " TLogVAR m, name, val
-            else
+            elseif j < len(argn)
                 let name = argn[j]
                 let j += 1
+            else
+                let argd.initial_cli_args = join(a:args[i : -1], ' ')
+                break
             endif
             let argd[name] = val
         endfor
