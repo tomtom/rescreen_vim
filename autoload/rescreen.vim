@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    963
+" @Revision:    1005
 
 
 let s:active_sessions = {}
@@ -84,7 +84,7 @@ if !exists('g:rescreen#session_name_expr')
     " Using this default expression, rescreen supports only one repl of 
     " a given type per VIM instance and screen sessions are not shared 
     " across several VIM instances.
-    let g:rescreen#session_name_expr = '"rescreen_'. v:servername .'_". self.repl'   "{{{2
+    let g:rescreen#session_name_expr = '"rescreen_'. v:servername .'_". self.repltype'   "{{{2
 endif
 
 
