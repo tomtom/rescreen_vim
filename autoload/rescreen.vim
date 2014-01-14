@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1017
+" @Revision:    1057
 
 
 let s:active_sessions = {}
@@ -163,6 +163,11 @@ endif
 if !exists('g:rescreen#cd')
     " cd command.
     let g:rescreen#cd = 'cd'   "{{{2
+endif
+
+
+if !exists('g:rescreen#in_screen')
+    let g:rescreen#in_screen = $TERM =~ '^screen'   "{{{2
 endif
 
 
@@ -454,12 +459,22 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
     let eval = '-X eval'
     let use_shell = !empty(self.shell) && a:type =~ '\<s\%[hell]\>'
     if a:type =~ '\<i\%[nitial]\>'
-        if $TERM =~ '^screen'
+        if g:rescreen#in_screen
+            throw 'Rescreen: Run rescreen from a screen isn''t supported yet'
+            if a:type =~ '\<init\>'
+                let split = ' split'
+                let only = 'only'
+            else
+                let split = ''
+                let only = ''
+            endif
+            " TLogVAR split, only
             let cmd = [g:rescreen#cmd,
                         \ self.GetSessionParams(),
                         \ eval,
+                        \ only,
                         \ '"title vim"',
-                        \ '"screen -t '. self.session_name .'" "at '. self.session_name .' split" focus "select '. self.session_name .'"',
+                        \ '"screen -t '. self.session_name .'" "at '. self.session_name . split .'" focus "select '. self.session_name .'"',
                         \ 'focus "select vim"'
                         \ ]
         elseif !empty(self.shell)
@@ -514,8 +529,12 @@ endf
 
 " :nodoc:
 function! s:prototype.GetSessionParams() dict "{{{3
-    let p = has('gui_running') ? ('-D -R -S '. self.session_name) : ''
-    let p .= ' -p '. self.session_name
+    if g:rescreen#in_screen
+        let p = ''
+    else
+        let p = has('gui_running') ? ('-D -R -S '. self.session_name) : ''
+        let p .= ' -p '. self.session_name
+    endif
     return p
 endf
 
@@ -538,14 +557,15 @@ function! s:prototype.GetSessions(use_cached, ...) dict "{{{3
     else
         let filters = a:000
     endif
-    " TLogVAR filters, sessions
+    " TLogVAR sessions
     for filter in filters
         if filter == "."
             let filter = self.session_name
         endif
+        let filter = filter
         let sessions = filter(sessions, 'v:val =~ filter')
+        " TLogVAR filter, sessions
     endfor
-    " TLogVAR sessions
     return sessions
 endf
 
@@ -556,7 +576,7 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
     let rv = 0
     let ok = self.SessionExists(0, '.')
     let any_attached = self.SessionExists(1, '(Attached)')
-    " TLogVAR ok, any_attached
+    " TLogVAR a:000, ok, any_attached
     if !ok || !any_attached
         " if !ok
         let repl = a:0 >= 1 ? a:1 : self.repl
@@ -564,10 +584,10 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
         let type = 'init shell'
         " let type = ''
         " if !ok
-        "     let type .= ' init'
+        "     let type .= ' init shell'
         " endif
         " if !any_attached
-        "     let type .= ' shell'
+        "     let type .= 'init shell'
         " endif
         call self.StartSession(type)
         if !ok && !empty(repl)
@@ -595,6 +615,7 @@ endf
 
 " :nodoc:
 function! s:prototype.StartSession(type) dict "{{{3
+    " TLogVAR a:type
     let cmd = self.GetScreenCmd(a:type, '')
     " TLogVAR cmd
     if !empty(cmd)
