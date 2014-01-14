@@ -303,6 +303,18 @@ function! s:prototype.InitBuffer() dict "{{{3
 endf
 
 
+function! rescreen#ChangeMapLeader(self, mapleader) "{{{3
+    if a:mapleader != g:rescreen#mapleader
+        for [name, key] in items(a:self.maps)
+            if key == g:rescreen#mapleader
+                let a:self.maps[name] = a:mapleader
+            endif
+        endfor
+    endif
+    return a:self
+endf
+
+
 function! s:RemoveBuffer(bufnr, session_name) "{{{3
     " TLogVAR a:bufnr, a:session_name
     let session = s:active_sessions[a:session_name]
