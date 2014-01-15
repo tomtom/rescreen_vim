@@ -2,7 +2,7 @@
 " @Website:     http://www.vim.org/account/profile.php?user_id=4037
 " @GIT:         http://github.com/tomtom/rescreen_vim
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    20
+" @Revision:    21
 " GetLatestVimScripts: 0 0 :AutoInstall: rescreen.vim
 
 if &cp || exists("loaded_rescreen")
@@ -24,7 +24,8 @@ set cpo&vim
 " With a optional bang (!), start the session immediatly.
 "
 " Arguments can also be passed as OPTIONS:
-"   -default ... The current buffer's default repl
+"   -[no-]default ... The current buffer's default repl
+"   -[no-]wait    ... Wait for the user to press ENTER when done
 "   -repltype=REPLTYPE
 "   -mode=MODE
 command! -bang -nargs=* Rescreen let b:rescreen = rescreen#Init(!empty('<bang>'), rescreen#Args2Dict([<f-args>]))
