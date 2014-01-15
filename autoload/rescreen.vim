@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1057
+" @Revision:    1081
 
 
 let s:active_sessions = {}
@@ -66,7 +66,7 @@ if !exists('g:rescreen#repltype_map')
     " |g:rescreen#filetype_map|.
     " :read: let g:rescreen#repltype_map = {...}   "{{{2
     let g:rescreen#repltype_map = {
-                \ '*': 'bash',
+                \ '*': '',
                 \ 'clojure': 'clojure',
                 \ 'haskell': 'ghci',
                 \ 'python': 'python',
@@ -88,31 +88,41 @@ if !exists('g:rescreen#session_name_expr')
 endif
 
 
-if !exists('g:rescreen#shell')
-    " The shell and terminal used to run |g:rescreen#cmd|.
+if !exists('g:rescreen#terminal')
+    " The terminal used to run |g:rescreen#cmd|.
     " If GUI is running, also start a terminal.
     "
     " Default values with GUI running:
     "     Windows :: mintty
     "     Linux :: gnome-terminal
-    let g:rescreen#shell =  ''   "{{{2
+    let g:rescreen#terminal =  ''   "{{{2
     if has('gui_running')
         if g:rescreen#windows
             if executable('mintty')
-                let g:rescreen#shell = ' start "" mintty.exe %s'
+                let g:rescreen#terminal = ' start "" mintty.exe %s'
             elseif executable('powershell')
-                let g:rescreen#shell = ' start "" powershell.exe -Command %s'
+                let g:rescreen#terminal = ' start "" powershell.exe -Command %s'
             else
-                let g:rescreen#shell = ' start "" cmd.exe /C %s'
+                let g:rescreen#terminal = ' start "" cmd.exe /C %s'
             endif
         elseif executable('gnome-terminal')
-            let g:rescreen#shell = 'gnome-terminal -x %s &'
+            let g:rescreen#terminal = 'gnome-terminal -x %s &'
         endif
     endif
 endif
 
 
+if !exists('g:rescreen#shell')
+    let g:rescreen#shell = 'bash'   "{{{2
+endif
+
+
 if !exists('g:rescreen#convert_path')
+    " When using the Windows version of GVIM, assume that paths have to 
+    " be converted via cygpath.
+    "
+    " You might want to change this value when not using the cygwin's 
+    " screen.
     let g:rescreen#convert_path = g:rescreen#windows ? 'system(''cygpath -m "%s"'')' : ''   "{{{2
 endif
 
@@ -167,7 +177,7 @@ endif
 
 
 if !exists('g:rescreen#in_screen')
-    let g:rescreen#in_screen = $TERM =~ '^screen'   "{{{2
+    let g:rescreen#in_screen = !has('gui_running') &&  $TERM =~ '^screen'   "{{{2
 endif
 
 
@@ -242,6 +252,7 @@ let s:prototype = {
             \ 'repl_handler': {},
             \ 'repldir': '',
             \ 'repltype': '',
+            \ 'terminal': g:rescreen#terminal,
             \ 'shell': g:rescreen#shell,
             \ }
 
@@ -457,7 +468,7 @@ endf
 function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
     " TLogVAR a:type, a:screen_args
     let eval = '-X eval'
-    let use_shell = !empty(self.shell) && a:type =~ '\<s\%[hell]\>'
+    let use_shell = !empty(self.terminal) && a:type =~ '\<s\%[hell]\>'
     if a:type =~ '\<i\%[nitial]\>'
         if g:rescreen#in_screen
             throw 'Rescreen: Run rescreen from a screen isn''t supported yet'
@@ -477,18 +488,16 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
                         \ '"screen -t '. self.session_name .'" "at '. self.session_name . split .'" focus "select '. self.session_name .'"',
                         \ 'focus "select vim"'
                         \ ]
-        elseif !empty(self.shell)
+        elseif !empty(self.terminal)
             let cmd = [
                         \ g:rescreen#cmd,
                         \ self.GetSessionParams(),
-                        \ '-t '. self.session_name
+                        \ '-s '. self.shell,
+                        \ '-t '. self.session_name,
                         \ ]
-            " if !s:reuse
-            "     call add(cmd, '-d -R')
-            " endif
-            " call add(cmd, '-X partial on')
+                        " \ '-X "allpartial on"',
         else
-            throw 'Rescreen: You have to run vim within screen or set g:rescreen#shell'
+            throw 'Rescreen: You have to run vim within screen or set g:rescreen#terminal'
         endif
         let initial_screen_args = get(self, 'initial_screen_args', '')
         if !empty(initial_screen_args)
@@ -508,6 +517,7 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
                     \ self.GetSessionParams(),
                     \ ]
     endif
+    " TLogVAR cmd
     if !empty(a:screen_args)
         let eval_arg = a:screen_args =~ '\V\^'. eval .'\>'
         " TLogVAR eval_arg, eval, a:screen_args
@@ -520,7 +530,7 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
     endif
     let cmdline = join(cmd)
     if use_shell
-        let cmdline = printf(self.shell, cmdline)
+        let cmdline = printf(self.terminal, cmdline)
     endif
     " TLogVAR cmdline
     return cmdline
@@ -601,7 +611,9 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
                 call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(repldir), 'x')
             endif
             " TLogVAR repl
-            call self.EvaluateInSession(repl, 'x')
+            if !empty(repl) && repl != self.shell
+                call self.EvaluateInSession(repl, 'x')
+            endif
             if has_key(self.repl_handler, 'initial_lines')
                 " TLogVAR self.repl_handler.initial_lines
                 call rescreen#Send(self.repl_handler.initial_lines)
@@ -621,7 +633,7 @@ function! s:prototype.StartSession(type) dict "{{{3
     if !empty(cmd)
         exec 'silent! !'. cmd
         if has("gui_running")
-            if !empty(self.shell)
+            if !empty(self.terminal)
                 exec 'sleep' g:rescreen#init_wait
             endif
         else
