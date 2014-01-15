@@ -117,6 +117,14 @@ if !exists('g:rescreen#shell')
 endif
 
 
+if !exists('g:rescreen#wait')
+    " Shell command that is appended to the initial argument when adding 
+    " the -wait option to |:Rescreen|.
+    " The default value will wait for user input only on errors.
+    let g:rescreen#wait = ' || (echo -n "Press ENTER"; read)'   "{{{2
+endif
+
+
 if !exists('g:rescreen#convert_path')
     " When using the Windows version of GVIM, assume that paths have to 
     " be converted via cygpath.
@@ -729,6 +737,9 @@ function! rescreen#Args2Dict(args) "{{{3
             endif
             let argd[name] = val
         endfor
+        if get(argd, 'wait', 0)
+            let argd.initial_cli_args .= g:rescreen#wait
+        endif
     endif
     return argd
 endf
