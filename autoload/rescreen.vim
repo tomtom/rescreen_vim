@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1081
+" @Revision:    1095
 
 
 let s:active_sessions = {}
@@ -625,6 +625,9 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
             if has_key(self.repl_handler, 'initial_lines')
                 " TLogVAR self.repl_handler.initial_lines
                 call rescreen#Send(self.repl_handler.initial_lines)
+            endif
+            if has_key(self.repl_handler, 'initial_exec')
+                exec self.repl_handler.initial_exec
             endif
         endif
         let rv = 1
