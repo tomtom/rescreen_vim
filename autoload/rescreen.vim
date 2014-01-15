@@ -841,3 +841,24 @@ function! rescreen#Complete(findstart, base) "{{{3
     endif
 endf
 
+
+function! rescreen#Get(var, ...) "{{{3
+    let default = a:0 >= 1 ? a:1 : ''
+    let contexts = a:0 >= 2 ? a:2 : 'bg'
+    for context in split(contexts, '\zs')
+        let var = context .':'. a:var
+        if context != 'g'
+            let var = substitute(var, '#', '_', 'g')
+            if exists(var)
+                exec 'return '. var
+            endif
+        else
+            try
+                exec 'return '. var
+            catch /^Vim\%((\a\+)\)\=:E121/
+            endtry
+        endif
+    endfor
+    return default
+endf
+
