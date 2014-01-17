@@ -275,7 +275,7 @@ function! s:prototype.InitBuffer() dict "{{{3
     endif
     " TLogVAR self.repltype
     if has_key(b:rescreens, self.repltype)
-        return b:rescreens[self.repltype]
+        let rescreen = b:rescreens[self.repltype]
     else
         let self.repl = get(g:rescreen#repltype_map, self.repltype, g:rescreen#repltype_map['*'])
         " TLogVAR self.repl
@@ -322,8 +322,13 @@ function! s:prototype.InitBuffer() dict "{{{3
         " TLogVAR self.repl
         let self.repl_handler.rescreen = self
         let b:rescreens[self.repltype] = self
-        return self
+        let rescreen = self
     endif
+    " TLogVAR has_key(rescreen.repl_handler,'InitBuffer')
+    if has_key(rescreen.repl_handler, 'InitBuffer')
+        call rescreen.repl_handler.InitBuffer()
+    endif
+    return rescreen
 endf
 
 
