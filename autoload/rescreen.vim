@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1096
+" @Revision:    1155
 
 
 let s:active_sessions = {}
@@ -169,7 +169,7 @@ endif
 if !exists('g:rescreen#timeout')
     " Timeout when waiting for a command to finish to retrieve 
     " its output.
-    let g:rescreen#timeout = 5   "{{{2
+    let g:rescreen#timeout = 5000   "{{{2
 endif
 
 
@@ -382,8 +382,10 @@ endf
 " input  ... a list of lines for input
 " mode  ... r ... read the result
 "           x ... evaluate as is
+" ?marker ... End of output marker string
 " :nodoc:
-function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
+function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
+    let marker = a:0 >= 1 ? a:1 : ''
     " TLogVAR a:input, a:mode
     if a:mode !=? 'x'
         call self.EnsureSessionExists()
@@ -418,7 +420,9 @@ function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
     call add(parts, part)
     " echo "DBG Rescreen: Sending input ... Please wait"
     let result = []
-    for part in parts
+    let partl = len(parts)
+    for parti in range(partl)
+        let part = parts[parti]
         " TLogVAR part
         call writefile(part, s:tempfile)
         let ftime = getftime(s:tempfile)
@@ -432,21 +436,10 @@ function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
         endif
         " TLogVAR cmd
         call self.RunScreen(cmd)
-        for i in range(g:rescreen#timeout * 5)
-            sleep 200m
-            " echom "DBG Evaluate" filereadable(s:tempfile) ftime getftime(s:tempfile) fsize getfsize(s:tempfile)
-            " echom "DBG Evaluate" string(input) string(readfile(s:tempfile))
-            if fsize != getfsize(s:tempfile) || ftime != getftime(s:tempfile)
-                        \ || (a:mode == 'r' && i % 5 == 0 && readfile(s:tempfile) != input)
-                if a:mode == 'r'
-                    let result += readfile(s:tempfile)
-                    " TLogVAR 1, len(result)
-                    break
-                else
-                    break
-                endif
-            endif
-        endfor
+        let read = a:mode == 'r' && parti == partl - 1
+        if read
+            let result += s:ObserveFile(s:tempfile, read, input, ftime, fsize, marker)
+        endif
     endfor
     if !empty(g:rescreen#send_after)
         " TLogVAR g:rescreen#send_after
@@ -456,6 +449,52 @@ function! s:prototype.EvaluateInSession(input, mode) dict "{{{3
     " echo
     " TLogVAR result
     return join(result, "\n")
+endf
+
+
+function! s:ReadFile(filename, marker) "{{{3
+    let output = readfile(a:filename)
+    let marki = empty(a:marker) ? len(output) : index(output, a:marker)
+    return [output, marki]
+endf
+
+
+function! s:ObserveFile(filename, read, input, inputtime, inputsize, marker) "{{{3
+    let imax = empty(a:marker) ? g:rescreen#timeout : -1
+    let i = 200
+    let j = 0
+    while imax < 0 || j < imax
+        exec 'sleep '. i .'m'
+        " echom "DBG Evaluate" filereadable(a:filename) a:inputtime getftime(a:filename) a:inputsize getfsize(a:filename)
+        " echom "DBG Evaluate" string(input) string(readfile(a:filename))
+        let output_changed = a:inputsize != getfsize(a:filename) || a:inputtime != getftime(a:filename)
+        if output_changed
+            if a:read
+                let [output, marki] = s:ReadFile(a:filename, a:marker)
+                let output_ok = output_changed && marki >= 0 && output != a:input
+                if output_ok
+                    if marki >= len(output)
+                        return output
+                    elseif marki == 0
+                        return []
+                    else
+                        return output[0 : marki - 1]
+                    endif
+                endif
+            else
+                return 1
+            endif
+        endif
+        let j += i
+        let i += 100
+    endwh
+    if a:read
+        let output = readfile(a:filename)
+        call add(output, '... TIMEOUT')
+        return output
+    else
+        return 0
+    endif
 endf
 
 
