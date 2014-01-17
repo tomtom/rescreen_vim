@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1155
+" @Revision:    1169
 
 
 let s:active_sessions = {}
@@ -632,51 +632,51 @@ function! s:prototype.GetSessions(use_cached, ...) dict "{{{3
 endf
 
 
-" :read: s:prototype.EnsureSessionExists(?repl = self.repl) dict
+" :read: s:prototype.EnsureSessionExists(?justcheck=0) dict
 " :nodoc:
 function! s:prototype.EnsureSessionExists(...) dict "{{{3
+    let justcheck = a:0 >= 1 ? a:1 : 0
     let rv = 0
     let ok = self.SessionExists(0, '.')
     let any_attached = self.SessionExists(1, '(Attached)')
     " TLogVAR a:000, ok, any_attached
     if !ok || !any_attached
-        " if !ok
-        let repl = a:0 >= 1 ? a:1 : self.repl
-        " TLogVAR repl
-        let type = 'init shell'
-        " let type = ''
-        " if !ok
-        "     let type .= ' init shell'
-        " endif
-        " if !any_attached
-        "     let type .= 'init shell'
-        " endif
-        call self.StartSession(type)
-        if !ok && !empty(repl)
-            if !empty(self.repldir)
-                let repldir = self.repldir
-                if !empty(self.shell_convert_path)
-                    let repldir = eval(printf(self.shell_convert_path, repldir))
-                    let repldir = substitute(repldir, '\(^\n\+\|\n\+$\)', '', 'g')
+        if !justcheck
+            " if !ok
+            let type = 'init shell'
+            " let type = ''
+            " if !ok
+            "     let type .= ' init shell'
+            " endif
+            " if !any_attached
+            "     let type .= 'init shell'
+            " endif
+            call self.StartSession(type)
+            if !ok
+                if !empty(self.repldir)
+                    let repldir = self.repldir
+                    if !empty(self.shell_convert_path)
+                        let repldir = eval(printf(self.shell_convert_path, repldir))
+                        let repldir = substitute(repldir, '\(^\n\+\|\n\+$\)', '', 'g')
+                    endif
+                    " TLogVAR repldir
+                    call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(repldir), 'x')
                 endif
-                " TLogVAR repldir
-                call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(repldir), 'x')
-            endif
-            " TLogVAR repl
-            if !empty(repl) && repl != self.shell
-                call self.EvaluateInSession(repl, 'x')
-            endif
-            if has_key(self.repl_handler, 'initial_lines')
-                " TLogVAR self.repl_handler.initial_lines
-                call rescreen#Send(self.repl_handler.initial_lines)
-            endif
-            if has_key(self.repl_handler, 'initial_exec')
-                if type(self.repl_handler.initial_exec) == 3
-                    for ex in self.repl_handler.initial_exec
-                        exec ex
-                    endfor
-                else
-                    exec self.repl_handler.initial_exec
+                if self.repl != self.shell
+                    call self.EvaluateInSession(self.repl, 'x')
+                endif
+                if has_key(self.repl_handler, 'initial_lines')
+                    " TLogVAR self.repl_handler.initial_lines
+                    call rescreen#Send(self.repl_handler.initial_lines)
+                endif
+                if has_key(self.repl_handler, 'initial_exec')
+                    if type(self.repl_handler.initial_exec) == 3
+                        for ex in self.repl_handler.initial_exec
+                            exec ex
+                        endfor
+                    else
+                        exec self.repl_handler.initial_exec
+                    endif
                 endif
             endif
         endif
