@@ -186,7 +186,7 @@ g:rescreen#send_after          (default: '')
     after evaluating input.
 
                                                     *g:rescreen#timeout*
-g:rescreen#timeout             (default: 5)
+g:rescreen#timeout             (default: 5000)
     Timeout when waiting for a command to finish to retrieve 
     its output.
 
