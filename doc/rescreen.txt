@@ -51,7 +51,6 @@ Contents~
         g:rescreen#wait ................ |g:rescreen#wait|
         g:rescreen#convert_path ........ |g:rescreen#convert_path|
         g:rescreen#init_wait ........... |g:rescreen#init_wait|
-        g:rescreen#wait ................ |g:rescreen#wait|
         g:rescreen#clear ............... |g:rescreen#clear|
         g:rescreen#sep ................. |g:rescreen#sep|
         g:rescreen#send_after .......... |g:rescreen#send_after|
@@ -59,11 +58,16 @@ Contents~
         g:rescreen#maxsize ............. |g:rescreen#maxsize|
         g:rescreen#cd .................. |g:rescreen#cd|
         g:rescreen#in_screen ........... |g:rescreen#in_screen|
+        g:rescreen#logging ............. |g:rescreen#logging|
         rescreen#Operator .............. |rescreen#Operator()|
         rescreen#GetSelection .......... |rescreen#GetSelection()|
         :Requit ........................ |:Requit|
         :Resend ........................ |:Resend|
+        :Relog ......................... |:Relog|
         rescreen#ChangeMapLeader ....... |rescreen#ChangeMapLeader()|
+        rescreen#LogMode ............... |rescreen#LogMode()|
+        prototype.LogMode
+        rescreen#LogWatcher ............ |rescreen#LogWatcher()|
         prototype.IsSupportedMode
         rescreen#Init .................. |rescreen#Init()|
         rescreen#Exit .................. |rescreen#Exit()|
@@ -157,7 +161,7 @@ g:rescreen#wait                (default: ' || (echo -n "Press ENTER"; read)')
     The default value will wait for user input only on errors.
 
                                                     *g:rescreen#convert_path*
-g:rescreen#convert_path        (default: g:rescreen#windows ? 'system(''cygpath -m "%s"'')' : '')
+g:rescreen#convert_path        (default: g:rescreen#windows ? 'system(''cygpath -m "''. shellescape(''%s'') .''"'')' : '')
     When using the Windows version of GVIM, assume that paths have to 
     be converted via cygpath.
 
@@ -167,10 +171,6 @@ g:rescreen#convert_path        (default: g:rescreen#windows ? 'system(''cygpath 
                                                     *g:rescreen#init_wait*
 g:rescreen#init_wait           (default: 1)
     How long to wait after starting the terminal.
-
-                                                    *g:rescreen#wait*
-g:rescreen#wait                (default: '500m')
-    How long to wait after executing a command.
 
                                                     *g:rescreen#clear*
 g:rescreen#clear               (default: 0)
@@ -200,6 +200,11 @@ g:rescreen#cd                  (default: 'cd')
                                                     *g:rescreen#in_screen*
 g:rescreen#in_screen           (default: !has('gui_running') &&  $TERM =~ '^screen')
 
+                                                    *g:rescreen#logging*
+g:rescreen#logging             (default: 0)
+    If true, turn on logging (insert output log in a VIM buffer) by 
+    default.
+
                                                     *rescreen#Operator()*
 rescreen#Operator(type, ...)
     For use as an operator. See 'opfunc'.
@@ -222,8 +227,21 @@ rescreen#GetSelection(mode, ...)
     Buffer-local
     Send TEXT to the current screen session.
 
+                                                    *:Relog*
+:Relog[!]
+    Buffer-local
+    Turn logging on. With bang, turn logging off.
+
                                                     *rescreen#ChangeMapLeader()*
 rescreen#ChangeMapLeader(self, mapleader)
+
+                                                    *rescreen#LogMode()*
+rescreen#LogMode(onoff)
+
+prototype.LogMode
+
+                                                    *rescreen#LogWatcher()*
+rescreen#LogWatcher()
 
 prototype.IsSupportedMode
 
