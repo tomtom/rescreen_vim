@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1169
+" @Revision:    1279
 
 
 let s:active_sessions = {}
@@ -131,19 +131,13 @@ if !exists('g:rescreen#convert_path')
     "
     " You might want to change this value when not using the cygwin's 
     " screen.
-    let g:rescreen#convert_path = g:rescreen#windows ? 'system(''cygpath -m "%s"'')' : ''   "{{{2
+    let g:rescreen#convert_path = g:rescreen#windows ? 'system(''cygpath -m "''. shellescape(''%s'') .''"'')' : ''   "{{{2
 endif
 
 
 if !exists('g:rescreen#init_wait')
     " How long to wait after starting the terminal.
     let g:rescreen#init_wait = 1   "{{{2
-endif
-
-
-if !exists('g:rescreen#wait')
-    " How long to wait after executing a command.
-    let g:rescreen#wait = '500m'   "{{{2
 endif
 
 
@@ -186,6 +180,12 @@ endif
 
 if !exists('g:rescreen#in_screen')
     let g:rescreen#in_screen = !has('gui_running') &&  $TERM =~ '^screen'   "{{{2
+endif
+
+if !exists('g:rescreen#logging')
+    " If true, turn on logging (insert output log in a VIM buffer) by 
+    " default.
+    let g:rescreen#logging = 0   "{{{2
 endif
 
 
@@ -248,20 +248,20 @@ function! rescreen#GetSelection(mode, ...) range "{{{3
 endf
 
 
-let s:tempfile = ''
-
-
 let s:prototype = {
             \ 'shell_convert_path': g:rescreen#convert_path,
             \ 'repl_convert_path': g:rescreen#convert_path,
             \ 'initial_screen_args': '',
+            \ 'logfile': '',
+            \ 'logging': g:rescreen#logging,
             \ 'maps': copy(g:rescreen#maps),
             \ 'os_win': g:rescreen#windows,
             \ 'repl_handler': {},
             \ 'repldir': '',
             \ 'repltype': '',
-            \ 'terminal': g:rescreen#terminal,
             \ 'shell': g:rescreen#shell,
+            \ 'tempfile': '',
+            \ 'terminal': g:rescreen#terminal,
             \ }
 
 
@@ -299,6 +299,10 @@ function! s:prototype.InitBuffer() dict "{{{3
         " Send TEXT to the current screen session.
         " :display: :Resend TEXT
         command! -buffer -nargs=1 Resend call rescreen#Send([<q-args>])
+        " Buffer-local
+        " Turn logging on. With bang, turn logging off.
+        " :display: :Relog[!]
+        command! -buffer -bang Relog call rescreen#LogMode(!empty(<q-args>))
         for [mtype, mkey] in items(self.maps)
             if mtype == 'send'
                 exec 'nnoremap <buffer>' mkey ':call rescreen#Send(getline("."))<cr>+'
@@ -373,12 +377,13 @@ function! s:prototype.ExitRepl() dict "{{{3
         " if !s:reuse
         "     call self.RunScreen('-wipe '. self.session_name)
         " endif
-        if !empty(s:tempfile) && filereadable(s:tempfile)
-            call delete(s:tempfile)
+        if !empty(self.tempfile) && filereadable(self.tempfile)
+            call delete(self.tempfile)
         endif
         if bufnr('%') == self.bufnr
             call remove(b:rescreens, self.repltype)
         endif
+        call self.LogMode(0)
     endif
     return rv
 endf
@@ -395,8 +400,8 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
     if a:mode !=? 'x'
         call self.EnsureSessionExists()
     endif
-    if empty(s:tempfile)
-        let s:tempfile = substitute(tempname(), '\\', '/', 'g')
+    if empty(self.tempfile)
+        let self.tempfile = substitute(tempname(), '\\', '/', 'g')
     endif
     let input = repeat([''], g:rescreen#sep) + self.PrepareInput(a:input, a:mode)
     " TLogVAR input
@@ -404,7 +409,7 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
                 \ . ' "msgminwait 0"'
                 \ . ' "msgwait 0"'
                 \ . (g:rescreen#clear ? ' "at '. self.session_name .' clear"' : '')
-                \ . printf(' "bufferfile ''%s''"', s:tempfile)
+                \ . printf(' "bufferfile ''%s''"', self.tempfile)
                 \ . ' readbuf'
                 \ . ' "at '. self.session_name .' paste ."'
     " \ . ' "at '. self.session_name .' redisplay"'
@@ -429,9 +434,9 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
     for parti in range(partl)
         let part = parts[parti]
         " TLogVAR part
-        call writefile(part, s:tempfile)
-        let ftime = getftime(s:tempfile)
-        let fsize = getfsize(s:tempfile)
+        call writefile(part, self.tempfile)
+        let ftime = getftime(self.tempfile)
+        let fsize = getfsize(self.tempfile)
         if a:mode == 'r'
             let cmd = cmd0
         else
@@ -443,7 +448,7 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
         call self.RunScreen(cmd)
         let read = a:mode == 'r' && parti == partl - 1
         if read
-            let result += s:ObserveFile(s:tempfile, read, input, ftime, fsize, marker)
+            let result += s:ObserveFile(self.tempfile, read, input, ftime, fsize, marker)
         endif
     endfor
     if !empty(g:rescreen#send_after)
@@ -453,6 +458,9 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
     " redraw
     " echo
     " TLogVAR result
+    if has_key(s:log, self.repltype)
+        call rescreen#LogWatcher()
+    endif
     return join(result, "\n")
 endf
 
@@ -504,12 +512,15 @@ endf
 
 
 " :nodoc:
-function! s:prototype.Filename(filename) dict "{{{3
-    if empty(self.repl_convert_path)
+function! s:prototype.Filename(filename, ...) dict "{{{3
+    let type = a:0 >= 1 ? a:1 : 'repl'
+    let convert_path = self[type .'_convert_path']
+    if empty(convert_path)
         return a:filename
     else
-        let cmd = printf(self.repl_convert_path, shellescape(a:filename))
-        let filename = system(cmd)
+        let cmd = printf(convert_path, escape(a:filename, '\'))
+        let filename = eval(cmd)
+        let filename = substitute(filename, '\(^\n\+\|\n\+$\)', '', 'g')
         " TLogVAR cmd, filename
         return filename
     endif
@@ -589,6 +600,110 @@ function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
 endf
 
 
+let s:log = {}
+let s:logwatcher = 0
+
+
+function! rescreen#LogMode(onoff) "{{{3
+    if exists('b:rescreen')
+        call b:rescreen.LogMode(a:onoff)
+    endif
+endf
+
+
+function! s:prototype.LogMode(onoff) dict "{{{3
+    call self.EnsureSessionExists()
+    " TLogVAR a:onoff
+    let logger = ['-X eval']
+    if empty(self.logfile)
+        " let self.logfile = fnamemodify(bufname(self.bufnr), ':p:r')
+        " let repltype = substitute(self.repltype, '\W', '_', 'g')
+        " let self.logfile .= '.'. repltype .'.log'
+        let self.logfile = tempname()
+    endif
+    if self.logging != a:onoff || a:onoff == 2
+        let logfile = self.Filename(self.logfile, 'shell')
+        call add(logger, printf('"logfile %s"', escape(logfile, '\" ')))
+        call add(logger, printf('"log %s"', a:onoff ? 'on' : 'off'))
+        let log = join(logger, ' ')
+        " TLogVAR log
+        call self.RunScreen(log)
+        let self.logging = a:onoff != 0
+        if a:onoff != 0
+            let s:log[self.repltype] = {'logfile': self.logfile}
+            if !s:logwatcher
+                autocmd ReScreen CursorHold,CursorHoldI * call rescreen#LogWatcher()
+                " TLogDBG "Install LogWatcher"
+                let s:logwatcher = 1
+            endif
+        elseif has_key(s:log, self.repltype)
+            call remove(s:log, self.repltype)
+            if filereadable(logfile)
+                call delete(logfile)
+            endif
+            if s:logwatcher && empty(s:log)
+                autocmd! ReScreen CursorHold,CursorHoldI * call rescreen#LogWatcher()
+                " TLogDBG "Remove LogWatcher"
+                let s:logwatcher = 0
+            endif
+        endif
+    endif
+endf
+
+
+function! rescreen#LogWatcher() "{{{3
+    let bufnr = bufnr('%')
+    try
+        for [repltype, logdef] in items(s:log)
+            let logbufname = '__ReScreenLog_'. repltype .'__'
+            let logbufnr = bufnr(logbufname)
+            " TLogVAR logbufname, logbufnr
+            if logbufnr == -1 || bufwinnr(logbufnr) != -1
+                let file = logdef.logfile
+                " TLogVAR repltype, file
+                if filereadable(file)
+                    let mtime0 = get(logdef, 'mtime', 0)
+                    let size0 = get(logdef, 'size', 0)
+                    let mtime1 = getftime(file)
+                    let size1 = getfsize(file)
+                    " TLogVAR mtime0, mtime1, size0, size1
+                    if mtime0 != mtime1 || size0 != size1
+                        let lines = readfile(file)
+                        let maxline = len(lines) - 1
+                        let lastline = get(logdef, 'lastline', 0)
+                        let newlines = lines[lastline : maxline]
+                        " TLogVAR lastline, maxline
+                        if !empty(newlines)
+                            if logbufnr == -1
+                                exec 'split' logbufname
+                                setlocal buftype=nofile
+                                setlocal noswapfile
+                                setlocal foldmethod=manual
+                                setlocal foldcolumn=0
+                                setlocal modifiable
+                                setlocal nospell
+                                autocmd ReScreen FocusGained,BufWinEnter,WinEnter <buffer> call rescreen#LogWatcher()
+                                autocmd ReScreen CursorHoldI,CursorHold <buffer> call rescreen#LogWatcher()
+                            else
+                                exec 'drop' logbufname
+                            endif
+                            let s:log[repltype].mtime = mtime1
+                            let s:log[repltype].size = size1
+                            let s:log[repltype].lastline = maxline
+                            call append('$', newlines)
+                        endif
+                    endif
+                endif
+            endif
+        endfor
+    finally
+        if bufnr != bufnr('%')
+            exec 'drop' fnameescape(bufname(bufnr))
+        endif
+    endtry
+endf
+
+
 " :nodoc:
 function! s:prototype.GetSessionParams() dict "{{{3
     if g:rescreen#in_screen
@@ -655,10 +770,9 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
             if !ok
                 if !empty(self.repldir)
                     let repldir = self.repldir
-                    if !empty(self.shell_convert_path)
-                        let repldir = eval(printf(self.shell_convert_path, repldir))
-                        let repldir = substitute(repldir, '\(^\n\+\|\n\+$\)', '', 'g')
-                    endif
+                    " if !empty(self.shell_convert_path)
+                        let repldir = self.Filename(repldir, 'shell')
+                    " endif
                     " TLogVAR repldir
                     call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(repldir), 'x')
                 endif
@@ -677,6 +791,9 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
                     else
                         exec self.repl_handler.initial_exec
                     endif
+                endif
+                if self.logging
+                    call self.LogMode(2)
                 endif
             endif
         endif
@@ -716,7 +833,6 @@ function! s:prototype.RunScreen(screen_args) dict "{{{3
     else
         let rv = system(cmd)
     endif
-    " exec 'sleep' g:rescreen#wait
     " TLogVAR rv
     return rv
 endf
@@ -743,7 +859,7 @@ function! s:prototype.PrepareInput(input, mode) dict "{{{3
         if a:mode == 'p'
             let input = self.repl_handler.WrapResultPrinter(input)
         elseif a:mode == 'r'
-            let xtempfile = self.Filename(s:tempfile)
+            let xtempfile = self.Filename(self.tempfile)
             let input = self.repl_handler.WrapResultWriter(input, xtempfile)
         endif
     else
