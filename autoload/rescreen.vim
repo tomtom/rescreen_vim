@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1279
+" @Revision:    1284
 
 
 let s:active_sessions = {}
@@ -383,7 +383,9 @@ function! s:prototype.ExitRepl() dict "{{{3
         if bufnr('%') == self.bufnr
             call remove(b:rescreens, self.repltype)
         endif
-        call self.LogMode(0)
+        if self.logging
+            call self.LogMode(0)
+        endif
     endif
     return rv
 endf
@@ -612,8 +614,8 @@ endf
 
 
 function! s:prototype.LogMode(onoff) dict "{{{3
-    call self.EnsureSessionExists()
     " TLogVAR a:onoff
+    call self.EnsureSessionExists()
     let logger = ['-X eval']
     if empty(self.logfile)
         " let self.logfile = fnamemodify(bufname(self.bufnr), ':p:r')
@@ -792,6 +794,7 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
                         exec self.repl_handler.initial_exec
                     endif
                 endif
+                " TLogVAR self.logging
                 if self.logging
                     call self.LogMode(2)
                 endif
