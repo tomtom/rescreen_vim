@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1284
+" @Revision:    1291
 
 
 let s:active_sessions = {}
@@ -398,7 +398,7 @@ endf
 " :nodoc:
 function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
     let marker = a:0 >= 1 ? a:1 : ''
-    " TLogVAR a:input, a:mode
+    " TLogVAR a:input, a:mode, marker
     if a:mode !=? 'x'
         call self.EnsureSessionExists()
     endif
@@ -887,11 +887,12 @@ endf
 " Turn positional arguments into a dictionary. The arguments are:
 "   0. repltype
 "   1. mode
+"   *  initial_cli_args
 " :nodoc:
 function! rescreen#Args2Dict(args) "{{{3
     let argd = {'initial_cli_args': ''}
     if !empty(a:args)
-        let argn = ['repltype']
+        let argn = ['repltype', 'mode']
         let j = 0
         for i in range(0, len(a:args) - 1)
             let val = a:args[i]
@@ -987,9 +988,10 @@ endif
 " :display: rescreen#Send(lines, ?repltype, ?mode)
 " Send lines to a REPL. Use repltype if provided. Otherwise use the 
 " current screen session.
-function! rescreen#Send(lines, ...) "{{{3
+function! rescreen#Send(lines, ...) range "{{{3
     if !empty(a:lines)
         let args = rescreen#Args2Dict(a:000)
+        " TLogVAR args
         let rescreen = call(function('rescreen#Init'), [0, args])
         call rescreen.EvaluateInSession(a:lines, get(args, 'mode', ''))
     endif
