@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1291
+" @Revision:    1303
 
 
 let s:active_sessions = {}
@@ -262,17 +262,18 @@ endf
 
 
 let s:prototype = {
-            \ 'shell_convert_path': g:rescreen#convert_path,
-            \ 'repl_convert_path': g:rescreen#convert_path,
+            \ 'done': {},
             \ 'initial_screen_args': '',
             \ 'logfile': '',
             \ 'logging': g:rescreen#logging,
             \ 'maps': copy(g:rescreen#maps),
             \ 'os_win': g:rescreen#windows,
+            \ 'repl_convert_path': g:rescreen#convert_path,
             \ 'repl_handler': {},
             \ 'repldir': '',
             \ 'repltype': '',
             \ 'shell': g:rescreen#shell,
+            \ 'shell_convert_path': g:rescreen#convert_path,
             \ 'tempfile': '',
             \ 'terminal': g:rescreen#terminal,
             \ }
@@ -792,6 +793,7 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
             " endif
             call self.StartSession(type)
             if !ok
+                let self.done = {}
                 if !empty(self.repldir)
                     let repldir = self.repldir
                     " if !empty(self.shell_convert_path)
