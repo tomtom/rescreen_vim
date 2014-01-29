@@ -189,6 +189,19 @@ if !exists('g:rescreen#logging')
 endif
 
 
+if !exists('g:rescreen#tempnamef')
+    " A |printf()| format string including one %s, which will be 
+    " replaced with the session name, that is used to communicate with 
+    " the repl.
+    "
+    " If empty, use |tempname()| instead.
+    "
+    " SSD users should make sure, the file is located in some sort of 
+    " RAM disk.
+    let g:rescreen#tempnamef = ''   "{{{2
+endif
+
+
 " For use as an operator. See 'opfunc'.
 function! rescreen#Operator(type, ...) range "{{{3
     " TLogVAR a:type, a:000
@@ -403,7 +416,16 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
         call self.EnsureSessionExists()
     endif
     if empty(self.tempfile)
-        let self.tempfile = substitute(tempname(), '\\', '/', 'g')
+        if empty(g:rescreen#tempnamef)
+            let tempname = tempname()
+        else
+            let tempname = printf(g:rescreen#tempnamef, self.session_name)
+            let tempdir = fnamemodify(tempname, ':p:h')
+            if !isdirectory(tempdir)
+                call mkdir(tempdir, 'p')
+            endif
+        endif
+        let self.tempfile = substitute(tempname, '\\', '/', 'g')
     endif
     let input = repeat([''], g:rescreen#sep) + self.PrepareInput(a:input, a:mode)
     " TLogVAR input
