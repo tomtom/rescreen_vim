@@ -59,6 +59,7 @@ Contents~
         g:rescreen#cd .................. |g:rescreen#cd|
         g:rescreen#in_screen ........... |g:rescreen#in_screen|
         g:rescreen#logging ............. |g:rescreen#logging|
+        g:rescreen#tempnamef ........... |g:rescreen#tempnamef|
         rescreen#Operator .............. |rescreen#Operator()|
         rescreen#GetSelection .......... |rescreen#GetSelection()|
         :Requit ........................ |:Requit|
@@ -205,6 +206,17 @@ g:rescreen#logging             (default: 0)
     If true, turn on logging (insert output log in a VIM buffer) by 
     default.
 
+                                                    *g:rescreen#tempnamef*
+g:rescreen#tempnamef           (default: '')
+    A |printf()| format string including one %s, which will be 
+    replaced with the session name, that is used to communicate with 
+    the repl.
+
+    If empty, use |tempname()| instead.
+
+    SSD users should make sure, the file is located in some sort of 
+    RAM disk.
+
                                                     *rescreen#Operator()*
 rescreen#Operator(type, ...)
     For use as an operator. See 'opfunc'.
@@ -216,7 +228,6 @@ rescreen#GetSelection(mode, ...)
 
                                                     *:Requit*
 :Requit[!]
-    TLogVAR self.repl
     Buffer-local
     Stop the current screen session.
     With a bang (!), stop all screen sessions for the current 
