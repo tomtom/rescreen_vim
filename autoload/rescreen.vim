@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1303
+" @Revision:    1317
 
 
 let s:active_sessions = {}
@@ -498,6 +498,7 @@ endf
 
 
 function! s:ObserveFile(filename, read, input, inputtime, inputsize, marker) "{{{3
+    " TLogVAR a:filename, a:read, a:input, a:inputtime, a:inputsize, a:marker
     let imax = empty(a:marker) ? g:rescreen#timeout : -1
     let i = 200
     let j = 0
@@ -506,11 +507,14 @@ function! s:ObserveFile(filename, read, input, inputtime, inputsize, marker) "{{
         " echom "DBG Evaluate" filereadable(a:filename) a:inputtime getftime(a:filename) a:inputsize getfsize(a:filename)
         " echom "DBG Evaluate" string(input) string(readfile(a:filename))
         let output_changed = a:inputsize != getfsize(a:filename) || a:inputtime != getftime(a:filename)
+        " TLogVAR output_changed
         if output_changed
             if a:read
                 let [output, marki] = s:ReadFile(a:filename, a:marker)
                 let output_ok = output_changed && marki >= 0 && output != a:input
+                " TLogVAR output_ok
                 if output_ok
+                    " TLogVAR output
                     if marki >= len(output)
                         return output
                     elseif marki == 0
@@ -1012,12 +1016,26 @@ endif
 " :display: rescreen#Send(lines, ?repltype, ?mode)
 " Send lines to a REPL. Use repltype if provided. Otherwise use the 
 " current screen session.
+"
+" Possible values for mode:
+"   ""  ... Simply send input
+"   "p" ... Make sure the last value gets printed (this requires a 
+"           custom repl definition that defines WrapResultPrinter(input)
+"   "r" ... Return the last value to the caller (this requires a custom 
+"           repl defines that defines WrapResultWriter(input, xtempfile)
+"
+" Please see the rer plugin[1] for an example of how to define these 
+" wrappers.
+" 
+" [1] https://github.com/tomtom/rer_vim/blob/master/autoload/rescreen/repl/rer.vim
 function! rescreen#Send(lines, ...) range "{{{3
     if !empty(a:lines)
         let args = rescreen#Args2Dict(a:000)
         " TLogVAR args
         let rescreen = call(function('rescreen#Init'), [0, args])
-        call rescreen.EvaluateInSession(a:lines, get(args, 'mode', ''))
+        return rescreen.EvaluateInSession(a:lines, get(args, 'mode', ''))
+    else
+        return ''
     endif
 endf
 
