@@ -1060,3 +1060,8 @@ function! rescreen#Get(var, ...) "{{{3
     return default
 endf
 
+
+if exists(':TStatusregister')
+    TStatusregister b:rescreen.repltype=repl
+endif
+
