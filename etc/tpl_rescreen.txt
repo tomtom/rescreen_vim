@@ -20,6 +20,9 @@ Why another screen-based plugin? The code for this plugin was originally
 created for my rcom_vim plugin to fit its requirements. Since it has proven 
 useful, I put the code into a plugin of its own.
 
+This plugin is also meant to be the foundation for filetype/repl-specific 
+plugins like the rer vim plugin (https://github.com/tomtom/rer_vim/).
+
 
 -----------------------------------------------------------------------
 Install~
