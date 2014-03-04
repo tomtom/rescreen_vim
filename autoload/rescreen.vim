@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1317
+" @Revision:    1318
 
 
 let s:active_sessions = {}
@@ -1080,6 +1080,6 @@ endf
 
 
 if exists(':TStatusregister')
-    TStatusregister b:rescreen.repltype=repl
+    TStatusregister --event=BufEnter b:rescreen.repltype=repl
 endif
 
