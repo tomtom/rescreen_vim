@@ -1,6 +1,6 @@
 " @Author:      Tom Link (mailto:micathom AT gmail com?subject=[vim])
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
-" @Revision:    1318
+" @Revision:    1324
 
 
 let s:active_sessions = {}
@@ -76,6 +76,11 @@ if !exists('g:rescreen#repltype_map')
                 \ 'r': g:rescreen#windows ? 'R --ess' : 'R',
                 \ 'tcl': 'tclsh',
                 \ }
+endif
+
+
+if !exists('g:rescreen#backend_map')
+    let g:rescreen#backend_map = {'*': 'screen'}   "{{{2
 endif
 
 
@@ -179,8 +184,10 @@ endif
 
 
 if !exists('g:rescreen#in_screen')
-    let g:rescreen#in_screen = !has('gui_running') &&  $TERM =~ '^screen'   "{{{2
+    " <+TODO+> per backend
+    let g:rescreen#in_screen = !has('gui_running') && $TERM =~ '^screen'   "{{{2
 endif
+
 
 if !exists('g:rescreen#logging')
     " If true, turn on logging (insert output log in a VIM buffer) by 
@@ -385,12 +392,10 @@ function! s:prototype.ExitRepl() dict "{{{3
         if has_key(self.repl_handler, 'ExitRepl')
             call self.repl_handler.ExitRepl()
         endif
+        " <+TODO+> per backend
         call self.RunScreen('-X eval "msgwait 5" "msgminwait 1"')
         call self.RunScreen('-X kill')
         let rv = 1
-        " if !s:reuse
-        "     call self.RunScreen('-wipe '. self.session_name)
-        " endif
         if !empty(self.tempfile) && filereadable(self.tempfile)
             call delete(self.tempfile)
         endif
@@ -430,6 +435,7 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
     endif
     let input = repeat([''], g:rescreen#sep) + self.PrepareInput(a:input, a:mode)
     " TLogVAR input
+    " <+TODO+> per backend
     let cmd0 = '-X eval '
                 \ . ' "msgminwait 0"'
                 \ . ' "msgwait 0"'
@@ -437,7 +443,6 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
                 \ . printf(' "bufferfile ''%s''"', self.tempfile)
                 \ . ' readbuf'
                 \ . ' "at '. self.session_name .' paste ."'
-    " \ . ' "at '. self.session_name .' redisplay"'
     " TLogVAR cmd0
     let parts = []
     let part = []
@@ -465,11 +470,13 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
         if a:mode == 'r'
             let cmd = cmd0
         else
+            " <+TODO+> per backend
             let cmd = cmd0 . printf(' "register a rescreen%s"', fsize == 4 ? '_' : '')
                         \ . ' "paste a ."'
                         \ . ' writebuf'
         endif
         " TLogVAR cmd
+        " <+TODO+> per backend
         call self.RunScreen(cmd)
         let read = a:mode == 'r' && parti == partl - 1
         if read
@@ -478,6 +485,7 @@ function! s:prototype.EvaluateInSession(input, mode, ...) dict "{{{3
     endfor
     if !empty(g:rescreen#send_after)
         " TLogVAR g:rescreen#send_after
+        " <+TODO+> per backend
         call self.RunScreen('-X "stuff '. escape(g:rescreen#send_after, '"') .'"')
     endif
     " redraw
@@ -557,6 +565,7 @@ endf
 
 
 " :nodoc:
+" <+TODO+> per backend
 function! s:prototype.GetScreenCmd(type, screen_args) dict "{{{3
     " TLogVAR a:type, a:screen_args
     let eval = '-X eval'
@@ -640,14 +649,12 @@ function! rescreen#LogMode(onoff) "{{{3
 endf
 
 
+" <+TODO+> per backend
 function! s:prototype.LogMode(onoff) dict "{{{3
     " TLogVAR a:onoff
     call self.EnsureSessionExists()
     let logger = ['-X eval']
     if empty(self.logfile)
-        " let self.logfile = fnamemodify(bufname(self.bufnr), ':p:r')
-        " let repltype = substitute(self.repltype, '\W', '_', 'g')
-        " let self.logfile .= '.'. repltype .'.log'
         let self.logfile = tempname()
     endif
     if self.logging != a:onoff || a:onoff == 2
@@ -656,6 +663,7 @@ function! s:prototype.LogMode(onoff) dict "{{{3
         call add(logger, printf('"log %s"', a:onoff ? 'on' : 'off'))
         let log = join(logger, ' ')
         " TLogVAR log
+        " <+TODO+> per backend
         call self.RunScreen(log)
         let self.logging = a:onoff != 0
         if a:onoff != 0
@@ -734,6 +742,7 @@ endf
 
 
 " :nodoc:
+" <+TODO+> per backend
 function! s:prototype.GetSessionParams() dict "{{{3
     if g:rescreen#in_screen
         let p = ''
@@ -755,6 +764,7 @@ endf
 " :nodoc:
 function! s:prototype.GetSessions(use_cached, ...) dict "{{{3
     if !exists('s:sessions_list') || !a:use_cached
+        " <+TODO+> per backend
         let s:sessions_list = split(system(g:rescreen#cmd .' -list'), '\n')
     endif
     let sessions = copy(s:sessions_list)
@@ -782,27 +792,18 @@ function! s:prototype.EnsureSessionExists(...) dict "{{{3
     let justcheck = a:0 >= 1 ? a:1 : 0
     let rv = 0
     let ok = self.SessionExists(0, '.')
+    " <+TODO+> per backend
     let any_attached = self.SessionExists(1, '(Attached)')
     " TLogVAR a:000, ok, any_attached
     if !ok || !any_attached
         if !justcheck
-            " if !ok
             let type = 'init shell'
-            " let type = ''
-            " if !ok
-            "     let type .= ' init shell'
-            " endif
-            " if !any_attached
-            "     let type .= 'init shell'
-            " endif
             call self.StartSession(type)
             if !ok
                 let self.done = {}
                 if !empty(self.repldir)
                     let repldir = self.repldir
-                    " if !empty(self.shell_convert_path)
-                        let repldir = self.Filename(repldir, 'shell')
-                    " endif
+                    let repldir = self.Filename(repldir, 'shell')
                     " TLogVAR repldir
                     call self.EvaluateInSession(g:rescreen#cd .' '. fnameescape(repldir), 'x')
                 endif
@@ -849,6 +850,7 @@ function! s:prototype.StartSession(type) dict "{{{3
             redraw!
         endif
     endif
+    " <+TODO+> per backend
     call self.RunScreen('-wipe')
 endf
 
@@ -1045,7 +1047,6 @@ function! rescreen#Complete(findstart, base) "{{{3
     if a:findstart
         let line = getline('.')
         let start = col('.') - 1
-        " while start > 0 && line[start - 1] =~ '[._[:alnum:]]'
         while start > 0 && line[start - 1] =~ '\k'
             let start -= 1
         endwhile
