@@ -48,6 +48,7 @@ Contents~
         g:rescreen#cmd ................. |g:rescreen#cmd|
         g:rescreen#filetype_map ........ |g:rescreen#filetype_map|
         g:rescreen#repltype_map ........ |g:rescreen#repltype_map|
+        g:rescreen#backend_map ......... |g:rescreen#backend_map|
         g:rescreen#session_name_expr ... |g:rescreen#session_name_expr|
         g:rescreen#terminal ............ |g:rescreen#terminal|
         g:rescreen#shell ............... |g:rescreen#shell|
@@ -139,6 +140,9 @@ g:rescreen#repltype_map        (default: {...})
     REPLTYPE defaults to 'filetype' after mapping it to 
     |g:rescreen#filetype_map|.
 
+                                                    *g:rescreen#backend_map*
+g:rescreen#backend_map         (default: {'*': 'screen'})
+
                                                     *g:rescreen#session_name_expr*
 g:rescreen#session_name_expr   (default: '"rescreen_'. v:servername .'_". self.repltype ."_". self.initial_cli_args')
     A vim expression that is |eval()|uated to get the session name.
@@ -202,7 +206,8 @@ g:rescreen#cd                  (default: 'cd')
     cd command.
 
                                                     *g:rescreen#in_screen*
-g:rescreen#in_screen           (default: !has('gui_running') &&  $TERM =~ '^screen')
+g:rescreen#in_screen           (default: !has('gui_running') && $TERM =~ '^screen')
+    <+TODO+> per backend
 
                                                     *g:rescreen#logging*
 g:rescreen#logging             (default: 0)
@@ -253,6 +258,7 @@ rescreen#ChangeMapLeader(self, mapleader)
 rescreen#LogMode(onoff)
 
 prototype.LogMode
+    <+TODO+> per backend
 
                                                     *rescreen#LogWatcher()*
 rescreen#LogWatcher()
@@ -295,4 +301,4 @@ rescreen#Get(var, ...)
 
 
 
-vim:tw=78:fo=tcq2:isk=!-~,^*,^|,^":ts=8:ft=help:norl:
+vim:tw=78:fo=w2croql:isk=!-~,^*,^|,^":ts=8:ft=help:norl:

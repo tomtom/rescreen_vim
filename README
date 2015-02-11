@@ -1,5 +1,24 @@
 This plugin is supposed to be used from GVIM. It sends code to a repl running 
-inside a screen session.
+inside a screen session running in a terminal application.
+
+Use the |:Rescreen| command to initialize a screen session. If no repl is 
+defined for the current filetype, bash is used.
+
+Default maps (see |g:rescreen#maps|):
+
+    <c-cr> ... Send the current line or the visual selection to the current 
+               screen session
+    gx.    ... Send the current line to the current screen session
+    gx{motion} ... Send {motion} lines to the current screen session
+
+
+Background:
+Why another screen-based plugin? The code for this plugin was originally 
+created for my rcom_vim plugin to fit its requirements. Since it has proven 
+useful, I put the code into a plugin of its own.
+
+This plugin is also meant to be the foundation for filetype/repl-specific 
+plugins like the rer vim plugin (https://github.com/tomtom/rer_vim/).
 
 
 -----------------------------------------------------------------------
